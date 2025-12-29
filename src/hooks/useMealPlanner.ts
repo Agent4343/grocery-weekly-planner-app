@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Recipe } from '@/lib/recipes';
 
 export interface MealPlan {
@@ -17,15 +17,29 @@ export interface WeeklyMealPlan {
   meals: MealPlan[];
 }
 
+// Get a stable initial date to avoid hydration mismatch
+function getInitialWeekStart(): string {
+  // Use a fixed date for initial render, will be updated on client
+  return "2024-12-23"; // Monday
+}
+
 export const useMealPlanner = () => {
   const [currentWeek, setCurrentWeek] = useState<WeeklyMealPlan>({
-    weekStartDate: getWeekStartDate(new Date()),
+    weekStartDate: getInitialWeekStart(),
     meals: []
   });
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(getInitialWeekStart());
+
+  // Set the actual current week only on client to avoid hydration mismatch
+  useEffect(() => {
+    const now = new Date();
+    setCurrentWeek(prev => ({
+      ...prev,
+      weekStartDate: getWeekStartDate(now)
+    }));
+    setSelectedDate(now.toISOString().split('T')[0]);
+  }, []);
 
   // Add a meal to the plan
   const addMeal = useCallback((meal: Omit<MealPlan, 'id'>) => {
