@@ -45,10 +45,12 @@ export function MealPlanningDashboard() {
   const { preferences, isLoading, isOnboardingComplete, updateSelectedStores } = useUserPreferences();
   const {
     deals: userDeals,
+    lastFetchedAt,
     addDeal,
     updateDeal,
     removeDeal,
-    clearAllDeals
+    clearAllDeals,
+    importDeals
   } = useDealsManager();
 
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyMealPlan | null>(null);
@@ -432,7 +434,10 @@ export function MealPlanningDashboard() {
               onUpdateDeal={updateDeal}
               onRemoveDeal={removeDeal}
               onClearAll={clearAllDeals}
+              onImportDeals={importDeals}
+              selectedStores={preferences.selectedStores}
               preselectedStoreId={addDealForStore}
+              lastFetchedAt={lastFetchedAt || undefined}
             />
           </TabsContent>
         </Tabs>

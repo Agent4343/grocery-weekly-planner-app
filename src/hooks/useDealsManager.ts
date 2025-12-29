@@ -4,20 +4,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { DealItem } from '@/lib/meal-planning-ai';
 
 const DEALS_STORAGE_KEY = 'nl-grocery-deals';
+const FETCH_TIME_KEY = 'nl-grocery-deals-fetched-at';
 
 export interface DealsManagerState {
   deals: DealItem[];
   isLoading: boolean;
+  lastFetchedAt: string | null;
 }
 
 export function useDealsManager() {
   const [deals, setDeals] = useState<DealItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
 
   // Load deals from localStorage
   useEffect(() => {
     try {
       const stored = localStorage.getItem(DEALS_STORAGE_KEY);
+      const fetchedAt = localStorage.getItem(FETCH_TIME_KEY);
+
       if (stored) {
         const parsedDeals = JSON.parse(stored) as DealItem[];
         // Filter out expired deals
@@ -26,6 +31,10 @@ export function useDealsManager() {
           new Date(deal.validUntil) >= now
         );
         setDeals(validDeals);
+      }
+
+      if (fetchedAt) {
+        setLastFetchedAt(fetchedAt);
       }
     } catch (error) {
       console.error('Error loading deals:', error);
@@ -89,13 +98,19 @@ export function useDealsManager() {
     return deals.filter(deal => deal.isFlashSale);
   }, [deals]);
 
-  // Import deals (for bulk adding)
+  // Import deals (for bulk adding from fetch)
   const importDeals = useCallback((newDeals: Omit<DealItem, 'id'>[]) => {
-    const dealsWithIds = newDeals.map(deal => ({
+    const dealsWithIds = newDeals.map((deal, index) => ({
       ...deal,
-      id: `deal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      id: `deal_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`
     }));
-    saveDeals([...deals, ...dealsWithIds]);
+    const allDeals = [...deals, ...dealsWithIds];
+    saveDeals(allDeals);
+
+    // Update fetch timestamp
+    const now = new Date().toISOString();
+    localStorage.setItem(FETCH_TIME_KEY, now);
+    setLastFetchedAt(now);
   }, [deals, saveDeals]);
 
   // Get total savings potential
@@ -108,6 +123,7 @@ export function useDealsManager() {
   return {
     deals,
     isLoading,
+    lastFetchedAt,
     addDeal,
     updateDeal,
     removeDeal,

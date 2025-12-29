@@ -29,12 +29,16 @@ import {
   Zap,
   DollarSign,
   Calendar,
-  Pencil
+  Pencil,
+  Download,
+  RefreshCw,
+  Clock
 } from 'lucide-react';
 
 import { DealItem } from '@/lib/meal-planning-ai';
 import { extendedStores, getStoreById } from '@/lib/nl-locations';
 import { ingredientsDatabase } from '@/lib/ingredients';
+import { fetchWeeklyDeals, getDealsFreshness } from '@/lib/deal-fetcher';
 
 interface DealsManagerProps {
   deals: DealItem[];
@@ -42,7 +46,10 @@ interface DealsManagerProps {
   onUpdateDeal: (dealId: string, updates: Partial<DealItem>) => void;
   onRemoveDeal: (dealId: string) => void;
   onClearAll: () => void;
+  onImportDeals?: (deals: Omit<DealItem, 'id'>[]) => void;
+  selectedStores?: string[];
   preselectedStoreId?: string;
+  lastFetchedAt?: string;
 }
 
 const DEAL_CATEGORIES = [
@@ -68,10 +75,41 @@ export function DealsManager({
   onUpdateDeal,
   onRemoveDeal,
   onClearAll,
-  preselectedStoreId
+  onImportDeals,
+  selectedStores = [],
+  preselectedStoreId,
+  lastFetchedAt
 }: DealsManagerProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(!!preselectedStoreId);
   const [editingDeal, setEditingDeal] = useState<DealItem | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Fetch deals from stores
+  const handleFetchDeals = async () => {
+    if (selectedStores.length === 0) {
+      setFetchError('Please select stores in the Stores tab first');
+      return;
+    }
+
+    setIsFetching(true);
+    setFetchError(null);
+
+    try {
+      const result = await fetchWeeklyDeals(selectedStores);
+
+      if (result.deals.length > 0 && onImportDeals) {
+        // Clear existing fetched deals and import new ones
+        onClearAll();
+        onImportDeals(result.deals);
+      }
+    } catch (error) {
+      console.error('Error fetching deals:', error);
+      setFetchError('Failed to fetch deals. Please try again.');
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -184,22 +222,52 @@ export function DealsManager({
                 Manage Deals & Sales
               </CardTitle>
               <CardDescription>
-                Add current sales from your grocery store flyers
+                Fetch weekly deals automatically or add them manually
               </CardDescription>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                variant="default"
+                className="bg-green-600 hover:bg-green-700"
+                onClick={handleFetchDeals}
+                disabled={isFetching || selectedStores.length === 0}
+              >
+                {isFetching ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                {isFetching ? 'Fetching...' : "Fetch This Week's Deals"}
+              </Button>
               {deals.length > 0 && (
                 <Button variant="outline" size="sm" onClick={onClearAll}>
                   <Trash2 className="h-4 w-4 mr-1" />
                   Clear All
                 </Button>
               )}
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button variant="outline" onClick={() => setIsAddDialogOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />
-                Add Deal
+                Add Manual
               </Button>
             </div>
           </div>
+          {/* Fetch status */}
+          {lastFetchedAt && (
+            <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
+              <Clock className="h-4 w-4" />
+              Last updated: {getDealsFreshness(lastFetchedAt)}
+            </div>
+          )}
+          {fetchError && (
+            <div className="mt-2 p-2 bg-red-50 text-red-600 text-sm rounded-lg">
+              {fetchError}
+            </div>
+          )}
+          {selectedStores.length === 0 && (
+            <div className="mt-2 p-2 bg-yellow-50 text-yellow-700 text-sm rounded-lg">
+              Select stores in the Stores tab to fetch their weekly deals
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {/* Stats */}
