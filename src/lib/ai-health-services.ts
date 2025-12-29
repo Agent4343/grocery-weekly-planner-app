@@ -41,6 +41,19 @@ export interface NutritionalAnalysis {
   warnings: string[];
 }
 
+// Recipe type for nutritional analysis
+interface RecipeWithNutrition {
+  nutritionInfo?: {
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+    fiber?: number;
+    sodium?: number;
+    sugar?: number;
+  };
+}
+
 // Mock sale data for Newfoundland stores
 export const currentSales: SaleItem[] = [
   {
@@ -247,7 +260,7 @@ const NUTRITION_BONUSES = [
 ];
 
 // Calculate nutrition totals from recipes
-const calculateNutritionTotals = (recipes: any[]): NutritionTotals => {
+const calculateNutritionTotals = (recipes: RecipeWithNutrition[]): NutritionTotals => {
   return recipes.reduce((totals, recipe) => {
     if (!recipe.nutritionInfo) return totals;
 
@@ -323,7 +336,7 @@ const applyNutritionBonuses = (
 const clampScore = (score: number): number => Math.max(0, Math.min(100, score));
 
 // AI-powered health analysis
-export const analyzeNutritionalContent = async (recipes: any[], healthGoal?: HealthGoal): Promise<NutritionalAnalysis> => {
+export const analyzeNutritionalContent = async (recipes: RecipeWithNutrition[], healthGoal?: HealthGoal): Promise<NutritionalAnalysis> => {
   // Simulate AI analysis
   await new Promise(resolve => setTimeout(resolve, 1000));
 
