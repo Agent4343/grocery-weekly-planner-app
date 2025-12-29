@@ -275,6 +275,7 @@ const mockCurrentDeals: DealItem[] = [
 export class MealPlanningAI {
   private static instance: MealPlanningAI;
   private currentDeals: DealItem[] = mockCurrentDeals;
+  private userDeals: DealItem[] = [];
 
   private constructor() {}
 
@@ -285,40 +286,52 @@ export class MealPlanningAI {
     return MealPlanningAI.instance;
   }
 
+  // Set user-provided deals (from localStorage or input)
+  setUserDeals(deals: DealItem[]): void {
+    this.userDeals = deals;
+  }
+
+  // Get all deals (user deals take priority, fall back to mock)
+  getAllDeals(): DealItem[] {
+    // If user has added deals, use those; otherwise use mock data
+    return this.userDeals.length > 0 ? this.userDeals : this.currentDeals;
+  }
+
   // Get current deals
   getCurrentDeals(): DealItem[] {
-    return this.currentDeals;
+    return this.getAllDeals();
   }
 
   // Get deals for specific stores
   getDealsForStores(storeIds: string[]): DealItem[] {
-    return this.currentDeals.filter(deal => storeIds.includes(deal.storeId));
+    return this.getAllDeals().filter(deal => storeIds.includes(deal.storeId));
   }
 
   // Get flash sales
   getFlashSales(): DealItem[] {
-    return this.currentDeals.filter(deal => deal.isFlashSale);
+    return this.getAllDeals().filter(deal => deal.isFlashSale);
   }
 
   // Get best deals (sorted by discount percentage)
   getBestDeals(limit: number = 5): DealItem[] {
-    return [...this.currentDeals]
+    return [...this.getAllDeals()]
       .sort((a, b) => b.discountPercentage - a.discountPercentage)
       .slice(0, limit);
   }
 
   // Get total potential savings
   getTotalPotentialSavings(): number {
-    return this.currentDeals.reduce((total, deal) => {
+    return this.getAllDeals().reduce((total, deal) => {
       return total + (deal.originalPrice - deal.salePrice);
     }, 0);
   }
 
   // Check if ingredient is on sale
   isIngredientOnSale(ingredientId: string, storeIds?: string[]): DealItem | null {
+    const allDeals = this.getAllDeals();
     const deals = storeIds
-      ? this.currentDeals.filter(d => storeIds.includes(d.storeId))
-      : this.currentDeals;
+      ? allDeals.filter(d => storeIds.includes(d.storeId))
+      : allDeals;
 
     return deals.find(deal => deal.ingredientId === ingredientId) || null;
   }

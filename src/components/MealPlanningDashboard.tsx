@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,46 +21,60 @@ import {
   RefreshCw,
   Tag,
   Clock,
-  ChefHat,
   Settings,
   Utensils,
-  Zap,
-  TrendingDown
+  TrendingDown,
+  Store
 } from 'lucide-react';
 
 import { useUserPreferences } from '@/hooks/useUserPreferences';
+import { useDealsManager } from '@/hooks/useDealsManager';
 import { WeeklySummaryDashboard } from './WeeklySummaryDashboard';
 import { SmartGroceryList } from './SmartGroceryList';
 import { OnboardingWizard } from './OnboardingWizard';
+import { StoreDirectory } from './StoreDirectory';
+import { DealsManager } from './DealsManager';
 import {
   WeeklyMealPlan,
   DealItem,
-  BestDealMeal,
   getMealPlanningAI
 } from '@/lib/meal-planning-ai';
 import { BUDGET_DESCRIPTIONS } from '@/lib/user-preferences';
 
 export function MealPlanningDashboard() {
-  const { preferences, isLoading, isOnboardingComplete } = useUserPreferences();
+  const { preferences, isLoading, isOnboardingComplete, updateSelectedStores } = useUserPreferences();
+  const {
+    deals: userDeals,
+    addDeal,
+    updateDeal,
+    removeDeal,
+    clearAllDeals
+  } = useDealsManager();
+
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyMealPlan | null>(null);
-  const [currentDeals, setCurrentDeals] = useState<DealItem[]>([]);
-  const [bestDealMeals, setBestDealMeals] = useState<BestDealMeal[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [addDealForStore, setAddDealForStore] = useState<string | undefined>();
 
   const mealPlanningAI = getMealPlanningAI();
+
+  // Build deals by store map for the store directory
+  const dealsByStore = useMemo(() => {
+    const map = new Map<string, DealItem[]>();
+    userDeals.forEach(deal => {
+      const existing = map.get(deal.storeId) || [];
+      existing.push(deal);
+      map.set(deal.storeId, existing);
+    });
+    return map;
+  }, [userDeals]);
 
   const loadDealsAndPlan = useCallback(async () => {
     setIsGenerating(true);
     try {
-      // Get current deals
-      const deals = mealPlanningAI.getDealsForStores(preferences.selectedStores);
-      setCurrentDeals(deals);
-
-      // Get best deal meals
-      const bestMeals = mealPlanningAI.getBestDealMeals(preferences);
-      setBestDealMeals(bestMeals);
+      // Set user deals in the AI engine
+      mealPlanningAI.setUserDeals(userDeals);
 
       // Generate weekly plan
       const plan = mealPlanningAI.generateWeeklyPlan(preferences, {
@@ -73,14 +87,22 @@ export function MealPlanningDashboard() {
     } finally {
       setIsGenerating(false);
     }
-  }, [mealPlanningAI, preferences]);
+  }, [mealPlanningAI, preferences, userDeals]);
 
   // Load deals and generate plan when preferences are ready
   useEffect(() => {
     if (isOnboardingComplete && preferences.selectedStores.length > 0) {
       loadDealsAndPlan();
     }
-  }, [isOnboardingComplete, preferences.selectedStores, loadDealsAndPlan]);
+  }, [isOnboardingComplete, preferences.selectedStores, userDeals, loadDealsAndPlan]);
+
+  // Handle store toggle
+  const handleToggleStore = (storeId: string) => {
+    const newStores = preferences.selectedStores.includes(storeId)
+      ? preferences.selectedStores.filter(id => id !== storeId)
+      : [...preferences.selectedStores, storeId];
+    updateSelectedStores(newStores);
+  };
 
   const regeneratePlan = async () => {
     setIsGenerating(true);
@@ -246,7 +268,7 @@ export function MealPlanningDashboard() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-white shadow-sm mb-6">
+          <TabsList className="bg-white shadow-sm mb-6 flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Overview
@@ -259,9 +281,21 @@ export function MealPlanningDashboard() {
               <ShoppingCart className="h-4 w-4" />
               Shopping List
             </TabsTrigger>
+            <TabsTrigger value="stores" className="flex items-center gap-2">
+              <Store className="h-4 w-4" />
+              Stores
+              <Badge variant="secondary" className="ml-1 text-xs">
+                {preferences.selectedStores.length}
+              </Badge>
+            </TabsTrigger>
             <TabsTrigger value="deals" className="flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              Deals
+              My Deals
+              {userDeals.length > 0 && (
+                <Badge className="ml-1 text-xs bg-orange-100 text-orange-700">
+                  {userDeals.length}
+                </Badge>
+              )}
             </TabsTrigger>
           </TabsList>
 
@@ -377,152 +411,29 @@ export function MealPlanningDashboard() {
             )}
           </TabsContent>
 
-          {/* Deals Tab */}
+          {/* Stores Tab */}
+          <TabsContent value="stores">
+            <StoreDirectory
+              selectedStores={preferences.selectedStores}
+              onToggleStore={handleToggleStore}
+              dealsByStore={dealsByStore}
+              onAddDeal={(storeId) => {
+                setAddDealForStore(storeId);
+                setActiveTab('deals');
+              }}
+            />
+          </TabsContent>
+
+          {/* My Deals Tab */}
           <TabsContent value="deals">
-            <div className="space-y-6">
-              {/* Flash Sales */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-yellow-500" />
-                    Flash Sales
-                  </CardTitle>
-                  <CardDescription>Limited time offers at your selected stores</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {currentDeals.filter(d => d.isFlashSale).map((deal) => (
-                      <div
-                        key={deal.id}
-                        className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg border border-orange-200"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge className="bg-red-500 text-white">
-                            {deal.discountPercentage}% OFF
-                          </Badge>
-                          <Zap className="h-4 w-4 text-yellow-500" />
-                        </div>
-                        <h4 className="font-medium">{deal.ingredientName}</h4>
-                        <p className="text-sm text-gray-500">{deal.storeName}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-lg font-bold text-green-600">
-                            ${deal.salePrice.toFixed(2)}
-                          </span>
-                          <span className="text-sm text-gray-400 line-through">
-                            ${deal.originalPrice.toFixed(2)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">{deal.quantity}</p>
-                      </div>
-                    ))}
-                    {currentDeals.filter(d => d.isFlashSale).length === 0 && (
-                      <p className="text-gray-500 col-span-full text-center py-4">
-                        No flash sales at your stores right now
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Best Deal Meals */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ChefHat className="h-5 w-5 text-green-600" />
-                    Best Deal Meals This Week
-                  </CardTitle>
-                  <CardDescription>
-                    Meals that maximize your savings with current deals
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {bestDealMeals.slice(0, 5).map((dealMeal, index) => (
-                      <div
-                        key={dealMeal.recipe.id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center font-bold text-green-600">
-                            {index + 1}
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{dealMeal.recipe.name}</h4>
-                            <p className="text-sm text-gray-500">
-                              Uses {dealMeal.dealsUsed.length} deal{dealMeal.dealsUsed.length !== 1 ? 's' : ''}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-bold text-green-600">
-                              ${dealMeal.estimatedCost.toFixed(2)}
-                            </span>
-                            <span className="text-sm text-gray-400 line-through">
-                              ${dealMeal.normalCost.toFixed(2)}
-                            </span>
-                          </div>
-                          <Badge className="bg-orange-100 text-orange-700">
-                            Save ${dealMeal.totalSavings.toFixed(2)}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                    {bestDealMeals.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">
-                        No deal meals available with your current store selection
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* All Current Deals */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Tag className="h-5 w-5 text-blue-600" />
-                    All Current Deals
-                  </CardTitle>
-                  <CardDescription>
-                    Weekly specials at your selected stores
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {currentDeals.map((deal) => (
-                      <div
-                        key={deal.id}
-                        className="p-4 bg-white rounded-lg border hover:border-green-300 transition-colors"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant="secondary">{deal.category}</Badge>
-                          <Badge className="bg-green-100 text-green-700">
-                            {deal.discountPercentage}% OFF
-                          </Badge>
-                        </div>
-                        <h4 className="font-medium">{deal.ingredientName}</h4>
-                        <p className="text-sm text-gray-500">{deal.storeName}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-lg font-bold text-green-600">
-                            ${deal.salePrice.toFixed(2)}
-                          </span>
-                          <span className="text-sm text-gray-400 line-through">
-                            ${deal.originalPrice.toFixed(2)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-400 mt-1">{deal.quantity}</p>
-                      </div>
-                    ))}
-                    {currentDeals.length === 0 && (
-                      <p className="text-gray-500 col-span-full text-center py-4">
-                        No deals found at your selected stores
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <DealsManager
+              deals={userDeals}
+              onAddDeal={addDeal}
+              onUpdateDeal={updateDeal}
+              onRemoveDeal={removeDeal}
+              onClearAll={clearAllDeals}
+              preselectedStoreId={addDealForStore}
+            />
           </TabsContent>
         </Tabs>
       </main>
