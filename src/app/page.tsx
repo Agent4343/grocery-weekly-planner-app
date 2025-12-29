@@ -1,7 +1,7 @@
 "use client";
 
-import { MealPlanningDashboard } from '@/components/MealPlanningDashboard';
+import { SimpleMealPlanner } from '@/components/SimpleMealPlanner';
 
 export default function Home() {
-  return <MealPlanningDashboard />;
+  return <SimpleMealPlanner />;
 }

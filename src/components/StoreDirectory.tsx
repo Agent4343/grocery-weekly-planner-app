@@ -20,7 +20,6 @@ import {
 import {
   groceryChains,
   extendedStores,
-  nlLocations,
   getLocationById,
   ExtendedStore,
   GroceryChain

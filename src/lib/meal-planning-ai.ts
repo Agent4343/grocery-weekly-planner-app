@@ -1,7 +1,6 @@
 // AI Meal Planning Engine with Smart Deal Optimization
 
-import { Recipe, newfoundlandRecipes } from './recipes';
-import { getIngredientById } from './ingredients';
+import { Recipe, recipes } from './recipes';
 import { UserPreferences, calculateServingsNeeded, TIME_AVAILABILITY_DESCRIPTIONS } from './user-preferences';
 import { getStoreById } from './nl-locations';
 
@@ -344,7 +343,7 @@ export class MealPlanningAI {
 
     const mealScores: BestDealMeal[] = [];
 
-    for (const recipe of newfoundlandRecipes) {
+    for (const recipe of recipes) {
       // Check if recipe fits user's time/skill constraints
       if (!this.recipeMatchesPreferences(recipe, userPreferences)) {
         continue;
@@ -356,21 +355,19 @@ export class MealPlanningAI {
       const dealsUsed: DealItem[] = [];
 
       for (const recipeIngredient of recipe.ingredients) {
-        const ingredient = getIngredientById(recipeIngredient.ingredientId);
-        if (!ingredient) continue;
+        // Get normal price from ingredient
+        const normalPrice = recipeIngredient.estimatedPrice || 2;
+        normalCost += normalPrice;
 
-        // Get normal price (use sobeys as default)
-        const normalPrice = ingredient.storeAvailability.sobeys.avgPrice || 5;
-        normalCost += normalPrice * recipeIngredient.amount;
-
-        // Check for deals on this ingredient
-        const deal = availableDeals.find(d => d.ingredientId === recipeIngredient.ingredientId);
+        // Check for deals on this ingredient by name
+        const ingredientKey = recipeIngredient.name.toLowerCase().replace(/\s+/g, '-');
+        const deal = availableDeals.find(d => d.ingredientId === ingredientKey);
         if (deal) {
-          saleCost += deal.salePrice * recipeIngredient.amount;
-          totalSavings += (deal.originalPrice - deal.salePrice) * recipeIngredient.amount;
+          saleCost += deal.salePrice;
+          totalSavings += (deal.originalPrice - deal.salePrice);
           dealsUsed.push(deal);
         } else {
-          saleCost += normalPrice * recipeIngredient.amount;
+          saleCost += normalPrice;
         }
       }
 
@@ -401,13 +398,11 @@ export class MealPlanningAI {
     if (skillLevel === 'beginner' && recipe.difficulty === 'Hard') return false;
     if (skillLevel === 'intermediate' && recipe.difficulty === 'Hard') return false;
 
-    // Check dietary restrictions - this would need more robust ingredient checking
-    // For now, basic check
+    // Check dietary restrictions based on ingredient categories
     if (preferences.dietaryContext.restrictions.includes('Vegetarian')) {
-      const hasAnimal = recipe.ingredients.some(ing => {
-        const ingredient = getIngredientById(ing.ingredientId);
-        return ingredient && ['Meat', 'Poultry', 'Seafood', 'Game Meat'].includes(ingredient.category);
-      });
+      const hasAnimal = recipe.ingredients.some(ing =>
+        ['Meat', 'Seafood'].includes(ing.category)
+      );
       if (hasAnimal) return false;
     }
 
@@ -437,7 +432,7 @@ export class MealPlanningAI {
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     // Get recipes that match preferences
-    const eligibleRecipes = newfoundlandRecipes.filter(r =>
+    const eligibleRecipes = recipes.filter(r =>
       this.recipeMatchesPreferences(r, preferences)
     );
 
@@ -474,9 +469,10 @@ export class MealPlanningAI {
 
         // Track used ingredients
         dinnerRecipe.ingredients.forEach(ing => {
+          const key = ing.name.toLowerCase();
           usedIngredients.set(
-            ing.ingredientId,
-            (usedIngredients.get(ing.ingredientId) || 0) + 1
+            key,
+            (usedIngredients.get(key) || 0) + 1
           );
         });
       }
@@ -503,9 +499,10 @@ export class MealPlanningAI {
         dailyMeals.push(lunchMeal);
 
         lunchRecipe.ingredients.forEach(ing => {
+          const key = ing.name.toLowerCase();
           usedIngredients.set(
-            ing.ingredientId,
-            (usedIngredients.get(ing.ingredientId) || 0) + 1
+            key,
+            (usedIngredients.get(key) || 0) + 1
           );
         });
       }
@@ -532,9 +529,10 @@ export class MealPlanningAI {
         dailyMeals.push(breakfastMeal);
 
         breakfastRecipe.ingredients.forEach(ing => {
+          const key = ing.name.toLowerCase();
           usedIngredients.set(
-            ing.ingredientId,
-            (usedIngredients.get(ing.ingredientId) || 0) + 1
+            key,
+            (usedIngredients.get(key) || 0) + 1
           );
         });
       }
@@ -544,9 +542,7 @@ export class MealPlanningAI {
         dayName: dayNames[dayOfWeek],
         date: date.toISOString().split('T')[0],
         meals: dailyMeals,
-        totalCalories: dailyMeals.reduce((sum, m) =>
-          sum + (m.recipe.nutritionInfo?.calories || 0) * (m.servings / m.recipe.servings), 0
-        ),
+        totalCalories: 0, // Nutrition info not available in simplified recipe format
         totalCost: dailyMeals.reduce((sum, m) => sum + m.estimatedCost, 0),
         totalTime: dailyMeals.reduce((sum, m) => sum + m.estimatedTime, 0),
         totalSavings: dailyMeals.reduce((sum, m) => sum + m.dealSavings, 0)
@@ -595,7 +591,7 @@ export class MealPlanningAI {
       // Bonus for ingredient reuse
       if (maximizeReuse) {
         const reuseCount = recipe.ingredients.filter(ing =>
-          usedIngredients.has(ing.ingredientId)
+          usedIngredients.has(ing.name.toLowerCase())
         ).length;
         score += reuseCount * 5;
       }
@@ -605,15 +601,18 @@ export class MealPlanningAI {
         if (recipe.prepTime + recipe.cookTime <= 30) score += 10;
       }
       if (preferences.mealPreferences.includes('healthy')) {
-        if (recipe.nutritionInfo && recipe.nutritionInfo.calories < 400) score += 5;
+        // Favor recipes tagged with healthy
+        if (recipe.tags.includes('healthy') || recipe.tags.includes('low-calorie')) score += 5;
       }
       if (preferences.mealPreferences.includes('comfort-food')) {
-        if (recipe.isTraditional) score += 8;
+        // Favor recipes tagged with comfort food
+        if (recipe.tags.includes('comfort-food') || recipe.tags.includes('classic')) score += 8;
       }
 
       // Match meal type to recipe category
       if (mealType === 'breakfast' && recipe.category === 'Breakfast') score += 15;
-      if (mealType === 'dinner' && recipe.category === 'Main Course') score += 10;
+      if (mealType === 'dinner' && recipe.category === 'Dinner') score += 10;
+      if (mealType === 'lunch' && recipe.category === 'Lunch') score += 10;
 
       return { recipe, score };
     });
@@ -642,23 +641,20 @@ export class MealPlanningAI {
     let usesDeals = false;
 
     for (const recipeIngredient of recipe.ingredients) {
-      const ingredient = getIngredientById(recipeIngredient.ingredientId);
-      if (!ingredient) continue;
+      const normalPrice = recipeIngredient.estimatedPrice || 2;
+      normalCost += normalPrice * scaleFactor;
 
-      const amount = recipeIngredient.amount * scaleFactor;
-      const normalPrice = ingredient.storeAvailability.sobeys.avgPrice || 5;
-      normalCost += normalPrice * amount;
-
+      const ingredientKey = recipeIngredient.name.toLowerCase().replace(/\s+/g, '-');
       const deal = this.isIngredientOnSale(
-        recipeIngredient.ingredientId,
+        ingredientKey,
         preferences.selectedStores
       );
 
       if (deal) {
-        estimatedCost += deal.salePrice * amount;
+        estimatedCost += deal.salePrice * scaleFactor;
         usesDeals = true;
       } else {
-        estimatedCost += normalPrice * amount;
+        estimatedCost += normalPrice * scaleFactor;
       }
     }
 
@@ -682,9 +678,12 @@ export class MealPlanningAI {
     preferences: UserPreferences
   ): SmartShoppingList {
     const ingredientMap = new Map<string, {
+      name: string;
       amount: number;
       unit: string;
       recipeNames: string[];
+      category: string;
+      estimatedPrice: number;
     }>();
 
     // Aggregate all ingredients
@@ -693,19 +692,24 @@ export class MealPlanningAI {
         const scaleFactor = meal.servings / meal.recipe.servings;
 
         for (const recipeIngredient of meal.recipe.ingredients) {
-          const existing = ingredientMap.get(recipeIngredient.ingredientId);
+          const key = `${recipeIngredient.name.toLowerCase()}-${recipeIngredient.unit}`;
+          const existing = ingredientMap.get(key);
           const amount = recipeIngredient.amount * scaleFactor;
 
           if (existing) {
             existing.amount += amount;
+            existing.estimatedPrice += (recipeIngredient.estimatedPrice || 2) * scaleFactor;
             if (!existing.recipeNames.includes(meal.recipe.name)) {
               existing.recipeNames.push(meal.recipe.name);
             }
           } else {
-            ingredientMap.set(recipeIngredient.ingredientId, {
+            ingredientMap.set(key, {
+              name: recipeIngredient.name,
               amount,
               unit: recipeIngredient.unit,
-              recipeNames: [meal.recipe.name]
+              recipeNames: [meal.recipe.name],
+              category: recipeIngredient.category,
+              estimatedPrice: (recipeIngredient.estimatedPrice || 2) * scaleFactor
             });
           }
         }
@@ -716,54 +720,34 @@ export class MealPlanningAI {
     const shoppingItems: SmartShoppingItem[] = [];
     const storeItemsMap = new Map<string, SmartShoppingItem[]>();
 
-    ingredientMap.forEach((value, ingredientId) => {
-      const ingredient = getIngredientById(ingredientId);
-      if (!ingredient) return;
-
-      // Find best store price
-      let bestStore = 'sobeys-avalon-mall';
-      let bestPrice = ingredient.storeAvailability.sobeys.avgPrice || 10;
+    ingredientMap.forEach((value, _key) => {
+      const ingredientKey = value.name.toLowerCase().replace(/\s+/g, '-');
+      let bestStore = preferences.selectedStores[0] || 'sobeys-avalon-mall';
+      let bestPrice = value.estimatedPrice;
       let normalPrice = bestPrice;
       let isOnSale = false;
-      let aisle = ingredient.storeAvailability.sobeys.section || 'General';
+      const aisle = value.category;
 
       // Check for deals at selected stores
-      const deal = this.isIngredientOnSale(ingredientId, preferences.selectedStores);
+      const deal = this.isIngredientOnSale(ingredientKey, preferences.selectedStores);
       if (deal) {
         bestStore = deal.storeId;
-        bestPrice = deal.salePrice;
-        normalPrice = deal.originalPrice;
+        bestPrice = deal.salePrice * value.amount;
+        normalPrice = deal.originalPrice * value.amount;
         isOnSale = true;
-      } else {
-        // Find cheapest store from user's selected stores
-        for (const storeId of preferences.selectedStores) {
-          const store = getStoreById(storeId);
-          if (!store) continue;
-
-          const storeType = store.type as 'sobeys' | 'dominion' | 'costco';
-          const availability = ingredient.storeAvailability[storeType];
-
-          if (availability?.available && availability.avgPrice) {
-            if (availability.avgPrice < bestPrice) {
-              bestPrice = availability.avgPrice;
-              bestStore = storeId;
-              aisle = availability.section || 'General';
-            }
-          }
-        }
       }
 
       const item: SmartShoppingItem = {
-        ingredientId,
-        ingredientName: ingredient.name,
+        ingredientId: ingredientKey,
+        ingredientName: value.name,
         amount: Math.ceil(value.amount * 10) / 10, // Round up slightly
         unit: value.unit,
-        category: ingredient.category,
+        category: value.category,
         recipeNames: value.recipeNames,
         bestStore,
-        bestPrice: Math.round(bestPrice * value.amount * 100) / 100,
-        normalPrice: Math.round(normalPrice * value.amount * 100) / 100,
-        savings: Math.round((normalPrice - bestPrice) * value.amount * 100) / 100,
+        bestPrice: Math.round(bestPrice * 100) / 100,
+        normalPrice: Math.round(normalPrice * 100) / 100,
+        savings: Math.round((normalPrice - bestPrice) * 100) / 100,
         isOnSale,
         aisle
       };
@@ -823,23 +807,6 @@ export class MealPlanningAI {
     const totalMeals = allMeals.length;
     const mealsUsingDeals = allMeals.filter(m => m.usesDeals).length;
 
-    let totalCalories = 0;
-    let totalProtein = 0;
-    let totalCarbs = 0;
-    let totalFat = 0;
-    let nutritionCount = 0;
-
-    allMeals.forEach(meal => {
-      if (meal.recipe.nutritionInfo) {
-        const scale = meal.servings / meal.recipe.servings;
-        totalCalories += meal.recipe.nutritionInfo.calories * scale;
-        totalProtein += meal.recipe.nutritionInfo.protein * scale;
-        totalCarbs += meal.recipe.nutritionInfo.carbs * scale;
-        totalFat += meal.recipe.nutritionInfo.fat * scale;
-        nutritionCount++;
-      }
-    });
-
     // Count ingredients that are used in multiple recipes
     const ingredientsReused = Array.from(usedIngredients.values()).filter(count => count > 1).length;
 
@@ -855,10 +822,10 @@ export class MealPlanningAI {
       ingredientsReused,
       uniqueIngredients: usedIngredients.size,
       nutritionSummary: {
-        avgCalories: nutritionCount > 0 ? Math.round(totalCalories / nutritionCount) : 0,
-        avgProtein: nutritionCount > 0 ? Math.round(totalProtein / nutritionCount) : 0,
-        avgCarbs: nutritionCount > 0 ? Math.round(totalCarbs / nutritionCount) : 0,
-        avgFat: nutritionCount > 0 ? Math.round(totalFat / nutritionCount) : 0
+        avgCalories: 0, // Nutrition info not available in simplified format
+        avgProtein: 0,
+        avgCarbs: 0,
+        avgFat: 0
       }
     };
   }
