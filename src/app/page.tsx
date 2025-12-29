@@ -657,28 +657,78 @@ export default function Home() {
             <DialogTitle className="text-base">Select Recipe for {selectedMealType}</DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 gap-2 mt-2">
-            {newfoundlandRecipes.map((recipe) => (
-              <Card
-                key={recipe.id}
-                className="cursor-pointer hover:shadow-md hover:border-green-400"
-                onClick={() => handleAddMeal(recipe)}
-              >
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="w-12 h-12 bg-green-100 rounded flex items-center justify-center flex-shrink-0">
-                    <Utensils className="w-6 h-6 text-green-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm truncate">{recipe.name}</h3>
-                    <div className="flex items-center text-xs text-gray-500">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {recipe.prepTime + recipe.cookTime}m
-                      <span className="mx-2">•</span>
-                      {recipe.nutritionInfo?.calories || 0} cal
+            {/* Map meal type to recipe category */}
+            {(() => {
+              const categoryMap: Record<string, string> = {
+                Breakfast: "Breakfast",
+                Lunch: "Lunch",
+                Dinner: "Dinner",
+                Snacks: "Snack"
+              };
+              const targetCategory = categoryMap[selectedMealType];
+
+              // Get matching recipes first, then others
+              const matchingRecipes = newfoundlandRecipes.filter(r => r.category === targetCategory);
+              const otherRecipes = newfoundlandRecipes.filter(r => r.category !== targetCategory);
+
+              return (
+                <>
+                  {matchingRecipes.length > 0 && (
+                    <div className="text-xs font-medium text-green-600 mb-1">
+                      Best for {selectedMealType} ({matchingRecipes.length})
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  )}
+                  {matchingRecipes.map((recipe) => (
+                    <Card
+                      key={recipe.id}
+                      className="cursor-pointer hover:shadow-md hover:border-green-400 border-green-200"
+                      onClick={() => handleAddMeal(recipe)}
+                    >
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="w-12 h-12 bg-green-100 rounded flex items-center justify-center flex-shrink-0">
+                          <Utensils className="w-6 h-6 text-green-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{recipe.name}</h3>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {recipe.prepTime + recipe.cookTime}m
+                            <span className="mx-2">•</span>
+                            {recipe.nutritionInfo?.calories || 0} cal
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                  {otherRecipes.length > 0 && (
+                    <div className="text-xs font-medium text-gray-500 mt-3 mb-1">
+                      Other Options ({otherRecipes.length})
+                    </div>
+                  )}
+                  {otherRecipes.map((recipe) => (
+                    <Card
+                      key={recipe.id}
+                      className="cursor-pointer hover:shadow-md hover:border-green-400"
+                      onClick={() => handleAddMeal(recipe)}
+                    >
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                          <Utensils className="w-6 h-6 text-gray-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{recipe.name}</h3>
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Badge variant="outline" className="text-[10px] mr-2">{recipe.category}</Badge>
+                            <Clock className="w-3 h-3 mr-1" />
+                            {recipe.prepTime + recipe.cookTime}m
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
