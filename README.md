@@ -4,10 +4,9 @@ A modern web application built with Next.js for planning weekly grocery shopping
 
 ## Features
 
-- 📅 Weekly meal planning
-- 🛒 Automated grocery list generation
-- 💳 Stripe payment integration
-- 🔐 Supabase authentication and database
+- 📅 Weekly meal planning with AI-generated health insights
+- 🛒 Store-aware sales and route tracking
+- 🔐 Client-side profile management for preferences and goals
 - 🎨 Beautiful UI with Radix UI components
 - 🌙 Dark mode support with next-themes
 - 📊 Data visualization with Recharts
@@ -16,8 +15,7 @@ A modern web application built with Next.js for planning weekly grocery shopping
 
 - **Framework:** Next.js 15.3.8
 - **UI Components:** Radix UI, Tailwind CSS
-- **Database:** Supabase
-- **Payment:** Stripe
+- **Data:** Client-side mock data and hooks
 - **Forms:** React Hook Form with Zod validation
 - **Icons:** Lucide React
 - **Date Handling:** date-fns, React Day Picker
@@ -43,13 +41,7 @@ npm install
 ```
 
 3. Set up environment variables:
-Create a `.env.local` file in the root directory with your configuration:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-STRIPE_SECRET_KEY=your_stripe_secret
-```
+Environment variables are optional for the demo. If you add integrations later, place them in a `.env.local` file at the project root.
 
 4. Run the development server:
 ```bash
