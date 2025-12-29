@@ -188,7 +188,7 @@ export function MealPlanningDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="max-w-[1400px] mx-auto px-4 py-6">
         {/* Quick Stats Bar */}
         {weeklyPlan && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -361,10 +361,12 @@ export function MealPlanningDashboard() {
             )}
           </TabsContent>
 
-          {/* Shopping List Tab */}
-          <TabsContent value="shopping">
+          {/* Shopping List Tab - Full width for many stores */}
+          <TabsContent value="shopping" className="-mx-4 px-4 md:-mx-8 md:px-8 lg:-mx-12 lg:px-12">
             {weeklyPlan ? (
-              <SmartGroceryList shoppingList={weeklyPlan.shoppingList} />
+              <div className="max-w-none">
+                <SmartGroceryList shoppingList={weeklyPlan.shoppingList} />
+              </div>
             ) : (
               <Card>
                 <CardContent className="p-12 text-center">

@@ -168,35 +168,37 @@ export function SmartGroceryList({ shoppingList }: SmartGroceryListProps) {
 
         {/* Tabs for each store */}
         <Tabs value={activeStore} onValueChange={setActiveStore}>
-          <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-gray-100 p-1">
-            {shoppingList.byStore.map((store) => {
-              const progress = getStoreProgress(store);
-              return (
-                <TabsTrigger
-                  key={store.storeId}
-                  value={store.storeId}
-                  className="flex-1 min-w-fit data-[state=active]:bg-white relative"
-                >
-                  <div className="flex items-center gap-2">
-                    <Store className="h-4 w-4" />
-                    <span className="hidden sm:inline">{store.storeName.split(' ')[0]}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {store.itemCount}
-                    </Badge>
-                  </div>
-                  {progress > 0 && progress < 100 && (
-                    <div
-                      className="absolute bottom-0 left-0 h-0.5 bg-green-500 transition-all"
-                      style={{ width: `${progress}%` }}
-                    />
-                  )}
-                  {progress === 100 && (
-                    <Check className="h-4 w-4 text-green-600 ml-1" />
-                  )}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
+          <div className="overflow-x-auto pb-2 -mx-1 px-1">
+            <TabsList className="inline-flex w-max min-w-full h-auto gap-2 bg-gray-100 p-2">
+              {shoppingList.byStore.map((store) => {
+                const progress = getStoreProgress(store);
+                return (
+                  <TabsTrigger
+                    key={store.storeId}
+                    value={store.storeId}
+                    className="flex-shrink-0 px-4 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm relative rounded-md"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4" />
+                      <span className="whitespace-nowrap">{store.storeName}</span>
+                      <Badge variant="secondary" className="text-xs">
+                        {store.itemCount}
+                      </Badge>
+                    </div>
+                    {progress > 0 && progress < 100 && (
+                      <div
+                        className="absolute bottom-0 left-0 h-0.5 bg-green-500 transition-all rounded-full"
+                        style={{ width: `${progress}%` }}
+                      />
+                    )}
+                    {progress === 100 && (
+                      <Check className="h-4 w-4 text-green-600 ml-1" />
+                    )}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+          </div>
 
           {shoppingList.byStore.map((store) => {
             const categoryGroups = groupItemsByCategory(store.items);
