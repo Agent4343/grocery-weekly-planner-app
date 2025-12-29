@@ -1,19 +1,19 @@
 "use client";
 
 import { useState, useCallback } from 'react';
-import { Recipe } from '@/lib/recipes';
-import { Ingredient, getIngredientById } from '@/lib/ingredients';
+import { Recipe, RecipeIngredient } from '@/lib/recipes';
 import { Store } from '@/lib/stores';
 
 export interface ShoppingListItem {
   id: string;
-  ingredientId: string;
-  ingredient: Ingredient;
+  name: string;
+  category: string;
   amount: number;
   unit: string;
   recipeNames: string[];
   isChecked: boolean;
   notes?: string;
+  estimatedPrice: number;
   preferredStore?: string;
 }
 
@@ -34,23 +34,28 @@ export const useShoppingList = () => {
       amount: number;
       unit: string;
       recipeNames: string[];
+      category: string;
+      estimatedPrice: number;
     }>();
 
     // Consolidate ingredients from all recipes
     recipes.forEach(recipe => {
-      recipe.ingredients.forEach(recipeIngredient => {
-        const key = recipeIngredient.ingredientId;
+      recipe.ingredients.forEach((recipeIngredient: RecipeIngredient) => {
+        const key = `${recipeIngredient.name.toLowerCase()}-${recipeIngredient.unit}`;
         const existing = ingredientMap.get(key);
 
         if (existing) {
           // Add to existing ingredient (assuming same unit)
           existing.amount += recipeIngredient.amount;
           existing.recipeNames.push(recipe.name);
+          existing.estimatedPrice += recipeIngredient.estimatedPrice || 0;
         } else {
           ingredientMap.set(key, {
             amount: recipeIngredient.amount,
             unit: recipeIngredient.unit,
-            recipeNames: [recipe.name]
+            recipeNames: [recipe.name],
+            category: recipeIngredient.category,
+            estimatedPrice: recipeIngredient.estimatedPrice || 0
           });
         }
       });
@@ -58,19 +63,18 @@ export const useShoppingList = () => {
 
     // Convert to shopping list items
     const newShoppingList: ShoppingListItem[] = [];
-    ingredientMap.forEach((data, ingredientId) => {
-      const ingredient = getIngredientById(ingredientId);
-      if (ingredient) {
-        newShoppingList.push({
-          id: `shopping-${ingredientId}`,
-          ingredientId,
-          ingredient,
-          amount: data.amount,
-          unit: data.unit,
-          recipeNames: [...new Set(data.recipeNames)], // Remove duplicates
-          isChecked: false
-        });
-      }
+    ingredientMap.forEach((data, key) => {
+      const name = key.split('-')[0];
+      newShoppingList.push({
+        id: `shopping-${key}`,
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        category: data.category,
+        amount: data.amount,
+        unit: data.unit,
+        recipeNames: [...new Set(data.recipeNames)], // Remove duplicates
+        isChecked: false,
+        estimatedPrice: data.estimatedPrice
+      });
     });
 
     setShoppingList(newShoppingList);
@@ -78,16 +82,17 @@ export const useShoppingList = () => {
   }, []);
 
   // Add custom item to shopping list
-  const addCustomItem = useCallback((ingredient: Ingredient, amount: number, unit: string, notes?: string) => {
+  const addCustomItem = useCallback((name: string, amount: number, unit: string, category: string, estimatedPrice: number, notes?: string) => {
     const newItem: ShoppingListItem = {
       id: `custom-${Date.now()}`,
-      ingredientId: ingredient.id,
-      ingredient,
+      name,
+      category,
       amount,
       unit,
       recipeNames: [],
       isChecked: false,
-      notes
+      notes,
+      estimatedPrice
     };
 
     setShoppingList(prev => [...prev, newItem]);
@@ -136,15 +141,11 @@ export const useShoppingList = () => {
   // Group shopping list by store
   const getShoppingListByStore = useCallback((stores: Store[]): StoreShoppingList[] => {
     return stores.map(store => {
-      const storeItems = shoppingList.filter(item => {
-        const availability = item.ingredient.storeAvailability[store.type];
-        return availability.available;
-      });
+      // All items are available at all stores for simplicity
+      const storeItems = [...shoppingList];
 
       const estimatedTotal = storeItems.reduce((total, item) => {
-        const availability = item.ingredient.storeAvailability[store.type];
-        const price = availability.avgPrice || 0;
-        return total + (price * item.amount);
+        return total + item.estimatedPrice;
       }, 0);
 
       return {
@@ -160,7 +161,7 @@ export const useShoppingList = () => {
     const categories = new Map<string, ShoppingListItem[]>();
 
     shoppingList.forEach(item => {
-      const category = item.ingredient.category;
+      const category = item.category;
       if (!categories.has(category)) {
         categories.set(category, []);
       }
@@ -169,7 +170,7 @@ export const useShoppingList = () => {
 
     return Array.from(categories.entries()).map(([category, items]) => ({
       category,
-      items: items.sort((a, b) => a.ingredient.name.localeCompare(b.ingredient.name))
+      items: items.sort((a, b) => a.name.localeCompare(b.name))
     }));
   }, [shoppingList]);
 
@@ -178,19 +179,9 @@ export const useShoppingList = () => {
     const totalItems = shoppingList.length;
     const checkedItemsCount = checkedItems.size;
     const uncheckedItems = totalItems - checkedItemsCount;
-    
+
     const totalEstimatedCost = shoppingList.reduce((total, item) => {
-      // Use average price across available stores
-      const availableStores = Object.entries(item.ingredient.storeAvailability)
-        .filter(([_, availability]) => (availability as any).available);
-      
-      if (availableStores.length === 0) return total;
-      
-      const avgPrice = availableStores.reduce((sum, [_, availability]) => 
-        sum + ((availability as any).avgPrice || 0), 0
-      ) / availableStores.length;
-      
-      return total + (avgPrice * item.amount);
+      return total + item.estimatedPrice;
     }, 0);
 
     const uniqueRecipes = new Set(
@@ -209,23 +200,16 @@ export const useShoppingList = () => {
 
   // Optimize shopping list for minimum stores
   const optimizeForMinimumStores = useCallback((availableStores: Store[]) => {
-    const storeScores = availableStores.map(store => {
-      const availableItems = shoppingList.filter(item => 
-        item.ingredient.storeAvailability[store.type].available
-      );
-      
-      const totalCost = availableItems.reduce((sum, item) => {
-        const price = item.ingredient.storeAvailability[store.type].avgPrice || 0;
-        return sum + (price * item.amount);
-      }, 0);
+    // With the simplified model, all stores have all items
+    const totalCost = shoppingList.reduce((sum, item) => sum + item.estimatedPrice, 0);
+    const itemCount = shoppingList.length;
 
-      return {
-        store,
-        availableItems: availableItems.length,
-        totalCost,
-        score: availableItems.length / totalCost // Items per dollar
-      };
-    });
+    const storeScores = availableStores.map(store => ({
+      store,
+      availableItems: itemCount,
+      totalCost,
+      score: itemCount > 0 && totalCost > 0 ? itemCount / totalCost : 0
+    }));
 
     return storeScores.sort((a, b) => b.score - a.score);
   }, [shoppingList]);
@@ -245,7 +229,7 @@ export const useShoppingList = () => {
       text += `${category}:\n`;
       items.forEach(item => {
         const status = item.isChecked ? "✓" : "☐";
-        text += `  ${status} ${item.amount} ${item.unit} ${item.ingredient.name}`;
+        text += `  ${status} ${item.amount} ${item.unit} ${item.name}`;
         if (item.recipeNames.length > 0) {
           text += ` (${item.recipeNames.join(", ")})`;
         }
