@@ -163,89 +163,203 @@ export const healthGoals: HealthGoal[] = [
   }
 ];
 
+// Type for nutrient validation rules
+interface NutrientRule {
+  nutrientKey: keyof HealthGoal['targetNutrients'];
+  getValue: (totals: NutritionTotals) => number;
+  checkMin?: {
+    penalty: number;
+    message: string;
+    isWarning?: boolean;
+  };
+  checkMax?: {
+    penalty: number;
+    message: string;
+    isWarning?: boolean;
+  };
+}
+
+// Type for aggregated nutrition totals
+interface NutritionTotals {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number;
+  sodium: number;
+  sugar: number;
+}
+
+// Configuration for health goal nutrient validation rules
+const NUTRIENT_RULES: NutrientRule[] = [
+  {
+    nutrientKey: 'calories',
+    getValue: (totals) => totals.calories,
+    checkMin: {
+      penalty: 10,
+      message: "Consider adding more calorie-dense healthy foods like nuts or avocados"
+    },
+    checkMax: {
+      penalty: 15,
+      message: "Daily calorie intake exceeds recommended amount for your goal",
+      isWarning: true
+    }
+  },
+  {
+    nutrientKey: 'protein',
+    getValue: (totals) => totals.protein,
+    checkMin: {
+      penalty: 10,
+      message: "Add more protein sources like fish, chicken, or legumes"
+    }
+  },
+  {
+    nutrientKey: 'fiber',
+    getValue: (totals) => totals.fiber,
+    checkMin: {
+      penalty: 10,
+      message: "Include more fiber-rich foods like vegetables and whole grains"
+    }
+  },
+  {
+    nutrientKey: 'sodium',
+    getValue: (totals) => totals.sodium,
+    checkMax: {
+      penalty: 15,
+      message: "Sodium intake is high - consider reducing processed foods",
+      isWarning: true
+    }
+  }
+];
+
+// Configuration for general nutrition bonuses
+const NUTRITION_BONUSES = [
+  {
+    check: (totals: NutritionTotals) => totals.protein > 25,
+    bonus: 5,
+    message: "Great protein intake for muscle health!"
+  },
+  {
+    check: (totals: NutritionTotals) => totals.fiber > 20,
+    bonus: 5,
+    message: "Excellent fiber intake for digestive health!"
+  }
+];
+
+// Calculate nutrition totals from recipes
+const calculateNutritionTotals = (recipes: any[]): NutritionTotals => {
+  return recipes.reduce((totals, recipe) => {
+    if (!recipe.nutritionInfo) return totals;
+
+    return {
+      calories: totals.calories + (recipe.nutritionInfo.calories || 0),
+      protein: totals.protein + (recipe.nutritionInfo.protein || 0),
+      carbs: totals.carbs + (recipe.nutritionInfo.carbs || 0),
+      fat: totals.fat + (recipe.nutritionInfo.fat || 0),
+      fiber: totals.fiber + (recipe.nutritionInfo.fiber || 0),
+      sodium: totals.sodium + (recipe.nutritionInfo.sodium || 0),
+      sugar: totals.sugar + (recipe.nutritionInfo.sugar || 0)
+    };
+  }, { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sodium: 0, sugar: 0 });
+};
+
+// Apply a single nutrient rule against health goal targets
+const applyNutrientRule = (
+  rule: NutrientRule,
+  totals: NutritionTotals,
+  healthGoal: HealthGoal
+): { scoreDelta: number; recommendations: string[]; warnings: string[] } => {
+  const target = healthGoal.targetNutrients[rule.nutrientKey];
+  if (!target) return { scoreDelta: 0, recommendations: [], warnings: [] };
+
+  const value = rule.getValue(totals);
+  const recommendations: string[] = [];
+  const warnings: string[] = [];
+  let scoreDelta = 0;
+
+  // Check minimum threshold (cast to access optional min property)
+  const minValue = (target as { min?: number }).min;
+  if (rule.checkMin && minValue !== undefined && value < minValue) {
+    scoreDelta -= rule.checkMin.penalty;
+    if (rule.checkMin.isWarning) {
+      warnings.push(rule.checkMin.message);
+    } else {
+      recommendations.push(rule.checkMin.message);
+    }
+  }
+
+  // Check maximum threshold (cast to access optional max property)
+  const maxValue = (target as { max?: number }).max;
+  if (rule.checkMax && maxValue !== undefined && value > maxValue) {
+    scoreDelta -= rule.checkMax.penalty;
+    if (rule.checkMax.isWarning) {
+      warnings.push(rule.checkMax.message);
+    } else {
+      recommendations.push(rule.checkMax.message);
+    }
+  }
+
+  return { scoreDelta, recommendations, warnings };
+};
+
+// Apply general nutrition bonuses
+const applyNutritionBonuses = (
+  totals: NutritionTotals
+): { scoreDelta: number; recommendations: string[] } => {
+  let scoreDelta = 0;
+  const recommendations: string[] = [];
+
+  for (const bonus of NUTRITION_BONUSES) {
+    if (bonus.check(totals)) {
+      scoreDelta += bonus.bonus;
+      recommendations.push(bonus.message);
+    }
+  }
+
+  return { scoreDelta, recommendations };
+};
+
+// Clamp score to valid range
+const clampScore = (score: number): number => Math.max(0, Math.min(100, score));
+
 // AI-powered health analysis
 export const analyzeNutritionalContent = async (recipes: any[], healthGoal?: HealthGoal): Promise<NutritionalAnalysis> => {
   // Simulate AI analysis
   await new Promise(resolve => setTimeout(resolve, 1000));
 
-  let totalCalories = 0;
-  let totalProtein = 0;
-  let totalCarbs = 0;
-  let totalFat = 0;
-  let totalFiber = 0;
-  let totalSodium = 0;
-  let totalSugar = 0;
-
   // Calculate totals from recipes
-  recipes.forEach(recipe => {
-    if (recipe.nutritionInfo) {
-      totalCalories += recipe.nutritionInfo.calories || 0;
-      totalProtein += recipe.nutritionInfo.protein || 0;
-      totalCarbs += recipe.nutritionInfo.carbs || 0;
-      totalFat += recipe.nutritionInfo.fat || 0;
-      totalFiber += (recipe.nutritionInfo.fiber || 0);
-      totalSodium += (recipe.nutritionInfo.sodium || 0);
-      totalSugar += (recipe.nutritionInfo.sugar || 0);
-    }
-  });
+  const totals = calculateNutritionTotals(recipes);
 
-  // Calculate health score based on goals
-  let healthScore = 75; // Base score
+  // Initialize health score and feedback arrays
+  const BASE_SCORE = 75;
+  let healthScore = BASE_SCORE;
   const recommendations: string[] = [];
   const warnings: string[] = [];
 
+  // Apply health goal rules if present
   if (healthGoal) {
-    // Check against health goal targets
-    if (healthGoal.targetNutrients.calories) {
-      if (totalCalories < (healthGoal.targetNutrients.calories.min || 0)) {
-        healthScore -= 10;
-        recommendations.push("Consider adding more calorie-dense healthy foods like nuts or avocados");
-      }
-      if (totalCalories > (healthGoal.targetNutrients.calories.max || 3000)) {
-        healthScore -= 15;
-        warnings.push("Daily calorie intake exceeds recommended amount for your goal");
-      }
-    }
-
-    if (healthGoal.targetNutrients.protein && totalProtein < (healthGoal.targetNutrients.protein.min || 0)) {
-      healthScore -= 10;
-      recommendations.push("Add more protein sources like fish, chicken, or legumes");
-    }
-
-    if (healthGoal.targetNutrients.fiber && totalFiber < (healthGoal.targetNutrients.fiber.min || 0)) {
-      healthScore -= 10;
-      recommendations.push("Include more fiber-rich foods like vegetables and whole grains");
-    }
-
-    if (healthGoal.targetNutrients.sodium && totalSodium > (healthGoal.targetNutrients.sodium.max || 2300)) {
-      healthScore -= 15;
-      warnings.push("Sodium intake is high - consider reducing processed foods");
+    for (const rule of NUTRIENT_RULES) {
+      const result = applyNutrientRule(rule, totals, healthGoal);
+      healthScore += result.scoreDelta;
+      recommendations.push(...result.recommendations);
+      warnings.push(...result.warnings);
     }
   }
 
-  // General recommendations
-  if (totalProtein > 25) {
-    healthScore += 5;
-    recommendations.push("Great protein intake for muscle health!");
-  }
-
-  if (totalFiber > 20) {
-    healthScore += 5;
-    recommendations.push("Excellent fiber intake for digestive health!");
-  }
-
-  // Ensure score is between 0-100
-  healthScore = Math.max(0, Math.min(100, healthScore));
+  // Apply general nutrition bonuses
+  const bonuses = applyNutritionBonuses(totals);
+  healthScore += bonuses.scoreDelta;
+  recommendations.push(...bonuses.recommendations);
 
   return {
-    totalCalories,
-    totalProtein,
-    totalCarbs,
-    totalFat,
-    totalFiber,
-    totalSodium,
-    totalSugar,
-    healthScore,
+    totalCalories: totals.calories,
+    totalProtein: totals.protein,
+    totalCarbs: totals.carbs,
+    totalFat: totals.fat,
+    totalFiber: totals.fiber,
+    totalSodium: totals.sodium,
+    totalSugar: totals.sugar,
+    healthScore: clampScore(healthScore),
     recommendations,
     warnings
   };
