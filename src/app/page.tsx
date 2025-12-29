@@ -63,7 +63,7 @@ export default function HomePage() {
             <CardContent className="space-y-3 text-sm text-gray-700">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
-                <p>Add your <code>.env.local</code> with Supabase and Stripe keys (publishable + secret) before deploy.</p>
+                <p>Environment variables are optional; the demo runs without secrets for preview deployments.</p>
               </div>
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
@@ -76,6 +76,10 @@ export default function HomePage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
                 <p>Static assets live in <code>/public</code>; no custom <code>vercel.json</code> needed.</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                <p>ESLint errors are skipped during builds (<code>ignoreDuringBuilds</code>) to keep previews unblocked.</p>
               </div>
             </CardContent>
           </Card>
