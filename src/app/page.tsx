@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Calendar,
   ShoppingCart,
@@ -20,7 +20,11 @@ import {
   Flame,
   Beef,
   Wheat,
-  Droplets
+  Droplets,
+  Sparkles,
+  Zap,
+  DollarSign,
+  Target
 } from "lucide-react";
 import { useMealPlanner, MealPlan } from "@/hooks/useMealPlanner";
 import { newfoundlandRecipes, Recipe } from "@/lib/recipes";
@@ -62,10 +66,109 @@ export default function Home() {
   const [shoppingList, setShoppingList] = useState<ShoppingListItem[]>([]);
   const [recipeSearch, setRecipeSearch] = useState("");
   const [saleSearch, setSaleSearch] = useState("");
+  const [showAISuggestions, setShowAISuggestions] = useState(false);
+  const [isGeneratingPlan, setIsGeneratingPlan] = useState(false);
 
   const weekDates = getWeekDates();
   const stats = getMealStats();
   const mealTypes: MealPlan["mealType"][] = ["Breakfast", "Lunch", "Dinner", "Snacks"];
+
+  // AI-powered suggestions: Find recipes that use ingredients on sale
+  const aiSuggestions = useMemo(() => {
+    const _saleIngredients = currentSales.map(s => s.ingredientId || s.description.toLowerCase());
+
+    // Score recipes based on sale ingredients and nutrition
+    const scoredRecipes = newfoundlandRecipes.map(recipe => {
+      let score = 0;
+      let savings = 0;
+      const matchedSales: SaleItem[] = [];
+
+      // Check if recipe uses sale items
+      recipe.ingredients.forEach(ing => {
+        const matchingSale = currentSales.find(sale =>
+          ing.ingredientId.includes(sale.ingredientId?.split('-')[0] || '') ||
+          sale.description.toLowerCase().includes(ing.ingredientId.split('-')[0])
+        );
+        if (matchingSale) {
+          score += 20;
+          savings += matchingSale.originalPrice - matchingSale.salePrice;
+          matchedSales.push(matchingSale);
+        }
+      });
+
+      // Bonus for balanced nutrition
+      if (recipe.nutritionInfo) {
+        if (recipe.nutritionInfo.protein >= 20) score += 10;
+        if (recipe.nutritionInfo.calories <= 500) score += 5;
+      }
+
+      // Bonus for quick prep
+      if (recipe.prepTime + recipe.cookTime <= 30) score += 10;
+
+      // Bonus for traditional recipes
+      if (recipe.isTraditional) score += 5;
+
+      return { recipe, score, savings, matchedSales };
+    });
+
+    return scoredRecipes
+      .filter(r => r.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6);
+  }, []);
+
+  // AI meal plan generator
+  const generateAIMealPlan = async () => {
+    setIsGeneratingPlan(true);
+
+    // Simulate AI processing time
+    await new Promise(resolve => setTimeout(resolve, 1500));
+
+    const mealTypeMap: Record<string, Recipe["category"]> = {
+      Breakfast: "Breakfast",
+      Lunch: "Lunch",
+      Dinner: "Dinner",
+      Snacks: "Snack"
+    };
+
+    // For each day, suggest meals using AI logic
+    weekDates.forEach(date => {
+      mealTypes.forEach(mealType => {
+        const existingMeal = getMealsForDate(date).find(m => m.mealType === mealType);
+        if (!existingMeal) {
+          // Find best recipe for this meal type
+          const category = mealTypeMap[mealType];
+          const candidates = newfoundlandRecipes.filter(r => r.category === category);
+
+          // Pick based on sale items and variety
+          const scored = candidates.map(recipe => {
+            let score = Math.random() * 10; // Add some variety
+
+            // Prefer recipes with sale ingredients
+            recipe.ingredients.forEach(ing => {
+              if (currentSales.some(s => s.description.toLowerCase().includes(ing.ingredientId.split('-')[0]))) {
+                score += 15;
+              }
+            });
+
+            return { recipe, score };
+          });
+
+          const best = scored.sort((a, b) => b.score - a.score)[0];
+          if (best) {
+            addMeal({
+              date,
+              mealType,
+              recipe: best.recipe,
+              servings: best.recipe.servings
+            });
+          }
+        }
+      });
+    });
+
+    setIsGeneratingPlan(false);
+  };
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -313,6 +416,91 @@ export default function Home() {
               </CardContent>
             </Card>
           )}
+
+          {/* AI Features Section */}
+          <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-purple-200">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <Sparkles className="w-5 h-5 text-purple-600 mr-2" />
+                  <h3 className="font-semibold text-purple-900">AI Meal Assistant</h3>
+                </div>
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                  {aiSuggestions.length} suggestions
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                <Button
+                  onClick={generateAIMealPlan}
+                  disabled={isGeneratingPlan}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  {isGeneratingPlan ? (
+                    <>
+                      <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Auto-Fill Week
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAISuggestions(!showAISuggestions)}
+                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  {showAISuggestions ? "Hide" : "Show"} Smart Picks
+                </Button>
+              </div>
+
+              {/* AI Suggestions */}
+              {showAISuggestions && aiSuggestions.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs text-purple-600 mb-2">
+                    Recipes using ingredients on sale - save money!
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {aiSuggestions.slice(0, 4).map(({ recipe, savings, matchedSales }) => (
+                      <div
+                        key={recipe.id}
+                        className="bg-white rounded-lg p-2 border border-purple-100 cursor-pointer hover:shadow-md transition-shadow"
+                        onClick={() => setSelectedRecipe(recipe)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{recipe.name}</h4>
+                            <div className="flex items-center text-xs text-gray-500 mt-1">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {recipe.prepTime + recipe.cookTime}m
+                              <Badge variant="outline" className="ml-2 text-[10px]">
+                                {recipe.category}
+                              </Badge>
+                            </div>
+                          </div>
+                          {savings > 0 && (
+                            <Badge className="bg-green-100 text-green-700 text-[10px] ml-1">
+                              <DollarSign className="w-3 h-3" />
+                              {savings.toFixed(0)}
+                            </Badge>
+                          )}
+                        </div>
+                        {matchedSales.length > 0 && (
+                          <div className="mt-1 text-[10px] text-purple-600">
+                            Uses: {matchedSales.map(s => s.description.split(' ')[0]).join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Generate Shopping List Button */}
           {stats.plannedMeals > 0 && (
