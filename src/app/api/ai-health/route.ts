@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AIHealthPlannerService, HealthProfile } from '@/lib/ai-health-planner';
+import { AIHealthPlannerService } from '@/lib/ai-health-planner';
 
 export async function POST(request: NextRequest) {
   try {

@@ -26,13 +26,13 @@ export default function AISalesTracker() {
     sales,
     loading,
     fetchSales,
-    getSalesForIngredients,
+    getSalesForIngredients: _getSalesForIngredients,
     analyzeSaleTrends
   } = useSaleDetection();
 
   const {
-    optimizedRoute,
-    predictPriceChanges
+    optimizedRoute: _optimizedRoute,
+    predictPriceChanges: _predictPriceChanges
   } = useSmartShopping();
 
   const [searchQuery, setSearchQuery] = useState("");

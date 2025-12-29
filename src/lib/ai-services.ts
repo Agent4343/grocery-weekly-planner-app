@@ -1,5 +1,26 @@
 // AI-powered services for grocery planning and health recommendations
 
+// Recipe type with optional nutrition info for analysis
+interface RecipeInput {
+  nutritionInfo?: {
+    calories?: number;
+  };
+}
+
+// Suggested meal type for optimization results
+interface SuggestedMeal {
+  name: string;
+  ingredients: string[];
+  onSale: boolean;
+  healthBenefits: string[];
+}
+
+// Shopping item type for route optimization
+interface ShoppingItem {
+  ingredientId?: string;
+  name?: string;
+}
+
 export interface SaleItem {
   id: string;
   ingredientId: string;
@@ -152,7 +173,7 @@ export class SaleDetectionService {
     return this.mockSales.filter(sale => ingredientIds.includes(sale.ingredientId));
   }
 
-  static async analyzeSaleTrends(ingredientId: string): Promise<{
+  static async analyzeSaleTrends(_ingredientId: string): Promise<{
     averageDiscount: number;
     saleFrequency: string;
     bestStore: string;
@@ -172,7 +193,7 @@ export class SaleDetectionService {
 
 // Mock AI service for health recommendations
 export class HealthAIService {
-  static async analyzeNutrition(recipes: any[]): Promise<NutritionAnalysis> {
+  static async analyzeNutrition(recipes: RecipeInput[]): Promise<NutritionAnalysis> {
     await new Promise(resolve => setTimeout(resolve, 600));
     
     // Mock nutrition analysis
@@ -207,7 +228,7 @@ export class HealthAIService {
 
   static async generateHealthRecommendations(
     profile: HealthProfile,
-    currentMeals: any[]
+    _currentMeals: RecipeInput[]
   ): Promise<HealthRecommendation[]> {
     await new Promise(resolve => setTimeout(resolve, 800));
     
@@ -264,11 +285,11 @@ export class HealthAIService {
   }
 
   static async optimizeMealPlan(
-    profile: HealthProfile,
-    availableIngredients: string[],
-    salesData: SaleItem[]
+    _profile: HealthProfile,
+    _availableIngredients: string[],
+    _salesData: SaleItem[]
   ): Promise<{
-    suggestedMeals: any[];
+    suggestedMeals: SuggestedMeal[];
     costSavings: number;
     healthScore: number;
     reasoning: string[];
@@ -301,7 +322,7 @@ export class HealthAIService {
     };
   }
 
-  static async getPersonalizedTips(profile: HealthProfile): Promise<string[]> {
+  static async getPersonalizedTips(_profile: HealthProfile): Promise<string[]> {
     await new Promise(resolve => setTimeout(resolve, 400));
     
     const tips = [
@@ -319,13 +340,13 @@ export class HealthAIService {
 // Mock AI service for smart shopping optimization
 export class SmartShoppingService {
   static async optimizeShoppingRoute(
-    shoppingList: any[],
-    selectedStores: string[],
-    salesData: SaleItem[]
+    _shoppingList: ShoppingItem[],
+    _selectedStores: string[],
+    _salesData: SaleItem[]
   ): Promise<{
     optimizedRoute: {
       store: string;
-      items: any[];
+      items: string[];
       estimatedTime: number;
       totalSavings: number;
     }[];
@@ -359,7 +380,7 @@ export class SmartShoppingService {
     };
   }
 
-  static async predictPriceChanges(ingredientIds: string[]): Promise<{
+  static async predictPriceChanges(_ingredientIds: string[]): Promise<{
     [ingredientId: string]: {
       currentTrend: 'rising' | 'falling' | 'stable';
       confidence: number;

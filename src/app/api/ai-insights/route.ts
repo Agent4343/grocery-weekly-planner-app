@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, data } = body;
+    const { type, data: _data } = body;
 
     // Simulate AI processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));

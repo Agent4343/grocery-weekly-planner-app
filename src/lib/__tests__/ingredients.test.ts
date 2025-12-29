@@ -5,8 +5,7 @@ import {
   getLocalIngredients,
   getSeasonalIngredients,
   getIngredientById,
-  searchIngredients,
-  type Ingredient
+  searchIngredients
 } from '../ingredients'
 
 describe('ingredientsDatabase', () => {

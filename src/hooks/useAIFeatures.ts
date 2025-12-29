@@ -36,7 +36,7 @@ export const useSaleDetection = () => {
     try {
       const salesData = await SaleDetectionService.getSalesForIngredients(ingredientIds);
       return salesData;
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to fetch ingredient sales');
       return [];
     } finally {
@@ -47,7 +47,7 @@ export const useSaleDetection = () => {
   const analyzeSaleTrends = useCallback(async (ingredientId: string) => {
     try {
       return await SaleDetectionService.analyzeSaleTrends(ingredientId);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to analyze sale trends');
       return null;
     }
@@ -88,7 +88,7 @@ export const useHealthAI = () => {
       const analysis = await HealthAIService.analyzeNutrition(recipes);
       setNutritionAnalysis(analysis);
       return analysis;
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to analyze nutrition');
       return null;
     } finally {
@@ -104,7 +104,7 @@ export const useHealthAI = () => {
       const recs = await HealthAIService.generateHealthRecommendations(healthProfile, currentMeals);
       setRecommendations(recs);
       return recs;
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to generate recommendations');
       return [];
     } finally {
@@ -121,7 +121,7 @@ export const useHealthAI = () => {
     setLoading(true);
     try {
       return await HealthAIService.optimizeMealPlan(healthProfile, availableIngredients, salesData);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to optimize meal plan');
       return null;
     } finally {
@@ -134,7 +134,7 @@ export const useHealthAI = () => {
     
     try {
       return await HealthAIService.getPersonalizedTips(healthProfile);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to get personalized tips');
       return [];
     }
@@ -188,7 +188,7 @@ export const useSmartShopping = () => {
       );
       setOptimizedRoute(route);
       return route;
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to optimize shopping route');
       return null;
     } finally {
@@ -202,7 +202,7 @@ export const useSmartShopping = () => {
       const predictions = await SmartShoppingService.predictPriceChanges(ingredientIds);
       setPricePredictions(predictions);
       return predictions;
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to predict price changes');
       return null;
     } finally {

@@ -54,6 +54,16 @@ interface RecipeWithNutrition {
   };
 }
 
+// Shopping list item type for optimization
+interface ShoppingListItem {
+  ingredientId: string;
+  ingredient: { name: string };
+  amount: number;
+  salePrice?: number;
+  originalPrice?: number;
+  onSale?: boolean;
+}
+
 // Mock sale data for Newfoundland stores
 export const currentSales: SaleItem[] = [
   {
@@ -381,7 +391,7 @@ export const analyzeNutritionalContent = async (recipes: RecipeWithNutrition[], 
 // AI-powered sale recommendations
 export const getPersonalizedSaleRecommendations = async (
   healthGoal?: HealthGoal,
-  currentMeals?: any[]
+  _currentMeals?: RecipeWithNutrition[]
 ): Promise<SaleItem[]> => {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 800));
@@ -476,11 +486,11 @@ export const generateMealSuggestions = async (
 
 // Smart shopping optimization
 export const optimizeShoppingList = async (
-  shoppingList: any[],
+  shoppingList: ShoppingListItem[],
   healthGoal?: HealthGoal,
   budget?: number
 ): Promise<{
-  optimizedList: any[];
+  optimizedList: ShoppingListItem[];
   totalSavings: number;
   healthScore: number;
   suggestions: string[];

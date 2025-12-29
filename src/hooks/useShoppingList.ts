@@ -5,6 +5,12 @@ import { Recipe } from '@/lib/recipes';
 import { Ingredient, getIngredientById } from '@/lib/ingredients';
 import { Store } from '@/lib/stores';
 
+// Type for store availability entry
+interface StoreAvailabilityEntry {
+  available: boolean;
+  avgPrice?: number;
+}
+
 export interface ShoppingListItem {
   id: string;
   ingredientId: string;
@@ -182,12 +188,12 @@ export const useShoppingList = () => {
     const totalEstimatedCost = shoppingList.reduce((total, item) => {
       // Use average price across available stores
       const availableStores = Object.entries(item.ingredient.storeAvailability)
-        .filter(([_, availability]) => (availability as any).available);
-      
+        .filter(([, availability]) => (availability as StoreAvailabilityEntry).available);
+
       if (availableStores.length === 0) return total;
-      
-      const avgPrice = availableStores.reduce((sum, [_, availability]) => 
-        sum + ((availability as any).avgPrice || 0), 0
+
+      const avgPrice = availableStores.reduce((sum, [, availability]) =>
+        sum + ((availability as StoreAvailabilityEntry).avgPrice || 0), 0
       ) / availableStores.length;
       
       return total + (avgPrice * item.amount);
