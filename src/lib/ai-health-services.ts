@@ -254,7 +254,7 @@ export const analyzeNutritionalContent = async (recipes: any[], healthGoal?: Hea
 // AI-powered sale recommendations
 export const getPersonalizedSaleRecommendations = async (
   healthGoal?: HealthGoal,
-  currentMeals?: any[]
+  _currentMeals?: any[]
 ): Promise<SaleItem[]> => {
   // Simulate AI processing
   await new Promise(resolve => setTimeout(resolve, 800));

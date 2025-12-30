@@ -38,6 +38,7 @@ export const useSaleDetection = () => {
       return salesData;
     } catch (err) {
       setError('Failed to fetch ingredient sales');
+      console.error('Ingredient sales error:', err);
       return [];
     } finally {
       setLoading(false);
@@ -49,6 +50,7 @@ export const useSaleDetection = () => {
       return await SaleDetectionService.analyzeSaleTrends(ingredientId);
     } catch (err) {
       setError('Failed to analyze sale trends');
+      console.error('Analyze sale trends error:', err);
       return null;
     }
   }, []);
@@ -90,6 +92,7 @@ export const useHealthAI = () => {
       return analysis;
     } catch (err) {
       setError('Failed to analyze nutrition');
+      console.error('Analyze nutrition error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -106,6 +109,7 @@ export const useHealthAI = () => {
       return recs;
     } catch (err) {
       setError('Failed to generate recommendations');
+      console.error('Generate recommendations error:', err);
       return [];
     } finally {
       setLoading(false);
@@ -123,6 +127,7 @@ export const useHealthAI = () => {
       return await HealthAIService.optimizeMealPlan(healthProfile, availableIngredients, salesData);
     } catch (err) {
       setError('Failed to optimize meal plan');
+      console.error('Optimize meal plan error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -136,6 +141,7 @@ export const useHealthAI = () => {
       return await HealthAIService.getPersonalizedTips(healthProfile);
     } catch (err) {
       setError('Failed to get personalized tips');
+      console.error('Get personalized tips error:', err);
       return [];
     }
   }, [healthProfile]);
@@ -190,6 +196,7 @@ export const useSmartShopping = () => {
       return route;
     } catch (err) {
       setError('Failed to optimize shopping route');
+      console.error('Optimize shopping route error:', err);
       return null;
     } finally {
       setLoading(false);
@@ -204,6 +211,7 @@ export const useSmartShopping = () => {
       return predictions;
     } catch (err) {
       setError('Failed to predict price changes');
+      console.error('Predict price changes error:', err);
       return null;
     } finally {
       setLoading(false);

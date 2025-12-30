@@ -21,7 +21,7 @@ export const useAIHealthPlanner = () => {
   // Load current sales on mount
   useEffect(() => {
     loadCurrentSales();
-  }, []);
+  }, [loadCurrentSales]);
 
   const loadCurrentSales = useCallback(async () => {
     try {

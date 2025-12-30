@@ -249,7 +249,7 @@ export class AIHealthPlannerService {
   async generateOptimizedMealPlan(
     profile: HealthProfile,
     sales: SaleItem[],
-    preferences: {
+    _preferences: {
       budget?: number;
       cookingTime?: number;
       servings?: number;

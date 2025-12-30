@@ -159,10 +159,10 @@ export class SaleDetectionService {
     prediction: string;
   }> {
     await new Promise(resolve => setTimeout(resolve, 400));
-    
+
     // Mock analysis
     return {
-      averageDiscount: 25,
+      averageDiscount: ingredientId ? 25 : 25,
       saleFrequency: "Every 2-3 weeks",
       bestStore: "Costco for bulk, Sobeys for fresh",
       prediction: "Next sale expected in 10-14 days"
@@ -207,7 +207,7 @@ export class HealthAIService {
 
   static async generateHealthRecommendations(
     profile: HealthProfile,
-    currentMeals: any[]
+    _currentMeals: any[]
   ): Promise<HealthRecommendation[]> {
     await new Promise(resolve => setTimeout(resolve, 800));
     
@@ -264,9 +264,9 @@ export class HealthAIService {
   }
 
   static async optimizeMealPlan(
-    profile: HealthProfile,
-    availableIngredients: string[],
-    salesData: SaleItem[]
+    _profile: HealthProfile,
+    _availableIngredients: string[],
+    _salesData: SaleItem[]
   ): Promise<{
     suggestedMeals: any[];
     costSavings: number;
@@ -301,7 +301,7 @@ export class HealthAIService {
     };
   }
 
-  static async getPersonalizedTips(profile: HealthProfile): Promise<string[]> {
+  static async getPersonalizedTips(_profile: HealthProfile): Promise<string[]> {
     await new Promise(resolve => setTimeout(resolve, 400));
     
     const tips = [
@@ -319,9 +319,9 @@ export class HealthAIService {
 // Mock AI service for smart shopping optimization
 export class SmartShoppingService {
   static async optimizeShoppingRoute(
-    shoppingList: any[],
-    selectedStores: string[],
-    salesData: SaleItem[]
+    _shoppingList: any[],
+    _selectedStores: string[],
+    _salesData: SaleItem[]
   ): Promise<{
     optimizedRoute: {
       store: string;
@@ -359,7 +359,7 @@ export class SmartShoppingService {
     };
   }
 
-  static async predictPriceChanges(ingredientIds: string[]): Promise<{
+  static async predictPriceChanges(_ingredientIds: string[]): Promise<{
     [ingredientId: string]: {
       currentTrend: 'rising' | 'falling' | 'stable';
       confidence: number;

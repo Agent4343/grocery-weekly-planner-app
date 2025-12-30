@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,9 +10,7 @@ import {
   TrendingDown, 
   MapPin, 
   Clock, 
-  DollarSign, 
   Search,
-  Filter,
   Bell,
   Star,
   ShoppingCart
@@ -27,11 +25,7 @@ export default function SalesTracker() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [savedSales, setSavedSales] = useState<string[]>([]);
 
-  useEffect(() => {
-    filterSales();
-  }, [searchQuery, selectedStore, selectedCategory]);
-
-  const filterSales = () => {
+  const filterSales = useCallback(() => {
     let filtered = [...currentSales];
 
     // Filter by search query
@@ -56,7 +50,11 @@ export default function SalesTracker() {
     filtered.sort((a, b) => b.discount - a.discount);
 
     setFilteredSales(filtered);
-  };
+  }, [searchQuery, selectedStore, selectedCategory]);
+
+  useEffect(() => {
+    filterSales();
+  }, [filterSales]);
 
   const toggleSavedSale = (saleId: string) => {
     setSavedSales(prev => 
