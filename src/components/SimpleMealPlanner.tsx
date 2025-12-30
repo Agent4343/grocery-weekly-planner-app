@@ -26,8 +26,12 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
-  Printer
+  Printer,
+  Mail
 } from 'lucide-react';
+
+import { NewsletterView } from '@/components/NewsletterView';
+import { useNewsletter } from '@/hooks/useNewsletter';
 
 import {
   recipes,
@@ -46,6 +50,16 @@ export function SimpleMealPlanner() {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Produce', 'Meat', 'Dairy']));
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
+
+  // Newsletter hook
+  const {
+    currentNewsletter,
+    newsletters,
+    isGenerating,
+    generate: generateNewsletter,
+    selectNewsletter,
+    deleteNewsletter,
+  } = useNewsletter();
 
   // Filter recipes
   const filteredRecipes = useMemo(() => {
@@ -201,6 +215,13 @@ export function SimpleMealPlanner() {
               Grocery List
               {groceryList.length > 0 && (
                 <Badge className="bg-blue-600">{groceryList.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="newsletter" className="flex items-center gap-2 px-6">
+              <Mail className="h-4 w-4" />
+              Deals Newsletter
+              {newsletters.length > 0 && (
+                <Badge className="bg-purple-600">{newsletters.length}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
@@ -565,6 +586,18 @@ export function SimpleMealPlanner() {
                 </div>
               </>
             )}
+          </TabsContent>
+
+          {/* Newsletter Tab */}
+          <TabsContent value="newsletter">
+            <NewsletterView
+              newsletter={currentNewsletter}
+              newsletters={newsletters}
+              isGenerating={isGenerating}
+              onGenerate={generateNewsletter}
+              onSelectNewsletter={selectNewsletter}
+              onDeleteNewsletter={deleteNewsletter}
+            />
           </TabsContent>
         </Tabs>
       </main>
