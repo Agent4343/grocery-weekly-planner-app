@@ -1,0 +1,100 @@
+<%- include('partials/header', { title, active: 'tips' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <h1>💡 Shopping Tips & Tricks</h1>
+    <p>Expert advice to help you save more on your grocery shopping</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <!-- Category Filter -->
+    <div class="filters">
+      <div class="filter-group">
+        <label class="filter-label">Category:</label>
+        <a href="/tips" class="btn btn-sm <%= !activeCategory ? 'btn-primary' : 'btn-secondary' %>">All</a>
+        <% categories.forEach(c => { %>
+        <a href="/tips?category=<%= c.category %>" class="btn btn-sm <%= activeCategory === c.category ? 'btn-primary' : 'btn-secondary' %>">
+          <%= c.category.replace('_', ' ') %> (<%= c.count %>)
+        </a>
+        <% }) %>
+      </div>
+    </div>
+    
+    <% if (tips && tips.length > 0) { %>
+    <div class="tips-grid">
+      <% tips.forEach(tip => { %>
+      <div class="tip-card">
+        <span class="tip-category">
+          <% 
+            const icons = {
+              general: '📌',
+              couponing: '🎫',
+              loyalty: '💳',
+              meal_planning: '📋',
+              seasonal: '🍂'
+            };
+          %>
+          <%= icons[tip.category] || '📌' %> <%= tip.category.replace('_', ' ') %>
+        </span>
+        <h3 class="tip-title"><%= tip.title %></h3>
+        <p class="tip-content"><%= tip.content %></p>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-lightbulb"></i>
+      <h3>No tips available</h3>
+      <p>Check back soon for helpful shopping tips!</p>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Loyalty Programs Section -->
+<section class="section" style="background: var(--bg-tertiary);">
+  <div class="container">
+    <div class="section-header">
+      <h2>💳 Understanding Loyalty Programs</h2>
+      <p>Make the most of rewards points at NL grocery stores</p>
+    </div>
+    
+    <div class="stores-grid">
+      <div class="store-card">
+        <h3 class="store-name" style="color: #e31837;">PC Optimum</h3>
+        <p class="store-address"><strong>Stores:</strong> Dominion, Atlantic Superstore, No Frills, Shoppers Drug Mart</p>
+        <p class="tip-content">Earn points on purchases and bonus point offers. 10,000 points = $10 in groceries. Load personalized offers in the app weekly!</p>
+      </div>
+      
+      <div class="store-card">
+        <h3 class="store-name" style="color: #00703c;">Scene+</h3>
+        <p class="store-address"><strong>Stores:</strong> Sobeys, Foodland, Colemans, Lawtons</p>
+        <p class="tip-content">1,000 Scene+ points = approximately $10 off groceries. Watch for Tuesday bonus points events and personalized offers.</p>
+      </div>
+      
+      <div class="store-card">
+        <h3 class="store-name" style="color: #c41230;">Costco Membership</h3>
+        <p class="store-address"><strong>Stores:</strong> Costco Warehouse</p>
+        <p class="tip-content">Annual membership ($65+) provides access to bulk savings. Executive members earn 2% cashback. Best for large families or bulk buying.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Subscribe CTA -->
+<section class="subscribe-section">
+  <div class="container">
+    <h2>📬 Get Tips & Deals Daily</h2>
+    <p>Subscribe to receive shopping tips and the best deals in your inbox!</p>
+    <form action="/subscribe" method="POST" class="subscribe-form">
+      <input type="email" name="email" placeholder="Enter your email" required>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-paper-plane"></i> Subscribe
+      </button>
+    </form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

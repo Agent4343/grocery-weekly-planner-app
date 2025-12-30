@@ -1,0 +1,129 @@
+<%- include('partials/header', { title, session, active: 'deals' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-<%= deal ? 'edit' : 'plus' %>"></i> <%= deal ? 'Edit' : 'Add' %> Deal</h1>
+  <a href="/admin/deals?session=<%= session %>" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Back to Deals
+  </a>
+</div>
+
+<div class="admin-card">
+  <div class="admin-card-body">
+    <form action="/admin/deals<%= deal ? '/' + deal.id : '' %>?session=<%= session %>" method="POST" class="admin-form">
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="store_id">Store *</label>
+          <select id="store_id" name="store_id" class="form-control" required>
+            <option value="">Select a store...</option>
+            <% stores.forEach(store => { %>
+            <option value="<%= store.id %>" <%= deal && deal.store_id === store.id ? 'selected' : '' %>>
+              <%= store.name %> (<%= store.city %>)
+            </option>
+            <% }) %>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="category">Category *</label>
+          <select id="category" name="category" class="form-control" required>
+            <% categories.forEach(cat => { %>
+            <option value="<%= cat %>" <%= deal && deal.category === cat ? 'selected' : '' %>><%= cat %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="product_name">Product Name *</label>
+        <input type="text" id="product_name" name="product_name" class="form-control" 
+               value="<%= deal ? deal.product_name : '' %>" required placeholder="e.g., Boneless Chicken Breast">
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="regular_price">Regular Price ($)</label>
+          <input type="number" id="regular_price" name="regular_price" class="form-control" 
+                 step="0.01" min="0" value="<%= deal ? deal.regular_price : '' %>" placeholder="9.99">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="sale_price">Sale Price ($) *</label>
+          <input type="number" id="sale_price" name="sale_price" class="form-control" 
+                 step="0.01" min="0" value="<%= deal ? deal.sale_price : '' %>" required placeholder="6.99">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="unit">Unit</label>
+          <select id="unit" name="unit" class="form-control">
+            <option value="each" <%= deal && deal.unit === 'each' ? 'selected' : '' %>>Each</option>
+            <option value="/lb" <%= deal && deal.unit === '/lb' ? 'selected' : '' %>>Per lb</option>
+            <option value="/kg" <%= deal && deal.unit === '/kg' ? 'selected' : '' %>>Per kg</option>
+            <option value="/100g" <%= deal && deal.unit === '/100g' ? 'selected' : '' %>>Per 100g</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Discount</label>
+          <p id="discountPercent" style="font-size: 1.25rem; font-weight: 700; margin: 10px 0;"></p>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="start_date">Start Date *</label>
+          <input type="date" id="start_date" name="start_date" class="form-control" 
+                 value="<%= deal ? deal.start_date : new Date().toISOString().split('T')[0] %>" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="end_date">End Date *</label>
+          <input type="date" id="end_date" name="end_date" class="form-control" 
+                 value="<%= deal ? deal.end_date : '' %>" required>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="loyalty_points">Loyalty Points Bonus</label>
+          <input type="number" id="loyalty_points" name="loyalty_points" class="form-control" 
+                 min="0" value="<%= deal ? deal.loyalty_points : 0 %>" placeholder="0">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="loyalty_points_value">Points Value ($)</label>
+          <input type="number" id="loyalty_points_value" name="loyalty_points_value" class="form-control" 
+                 step="0.01" min="0" value="<%= deal ? deal.loyalty_points_value : 0 %>" placeholder="0.00">
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="description">Description</label>
+        <textarea id="description" name="description" class="form-control" rows="2" 
+                  placeholder="e.g., Family pack, fresh"><%= deal ? deal.description : '' %></textarea>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="source">Source</label>
+        <input type="text" id="source" name="source" class="form-control" 
+               value="<%= deal ? deal.source : 'Weekly Flyer' %>" placeholder="Weekly Flyer">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">
+          <input type="checkbox" name="is_featured" value="1" <%= deal && deal.is_featured ? 'checked' : '' %>>
+          Featured Deal (highlight on homepage)
+        </label>
+      </div>
+      
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary btn-lg">
+          <i class="fas fa-save"></i> <%= deal ? 'Update' : 'Create' %> Deal
+        </button>
+        <a href="/admin/deals?session=<%= session %>" class="btn btn-secondary btn-lg">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

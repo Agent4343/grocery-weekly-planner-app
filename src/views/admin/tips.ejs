@@ -1,0 +1,119 @@
+<%- include('partials/header', { title, session, active: 'tips' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-lightbulb"></i> Manage Tips</h1>
+</div>
+
+<div style="display: grid; grid-template-columns: 400px 1fr; gap: 20px;">
+  <!-- Add Tip Form -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2>Add New Tip</h2>
+    </div>
+    <div class="admin-card-body">
+      <form id="tipForm">
+        <div class="form-group">
+          <label class="form-label" for="title">Title *</label>
+          <input type="text" id="title" name="title" class="form-control" required 
+                 placeholder="e.g., Stack Your Savings">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="content">Content *</label>
+          <textarea id="content" name="content" class="form-control" rows="4" required
+                    placeholder="Tip content..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="category">Category</label>
+          <select id="category" name="category" class="form-control">
+            <option value="general">General</option>
+            <option value="couponing">Couponing</option>
+            <option value="loyalty">Loyalty Programs</option>
+            <option value="meal_planning">Meal Planning</option>
+            <option value="seasonal">Seasonal</option>
+          </select>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          <i class="fas fa-plus"></i> Add Tip
+        </button>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Tips List -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2>All Tips (<%= tips.length %>)</h2>
+    </div>
+    <div class="admin-card-body" style="padding: 0;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Category</th>
+            <th>Content</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tipsTable">
+          <% if (tips && tips.length > 0) { %>
+            <% tips.forEach(tip => { %>
+            <tr>
+              <td><strong><%= tip.title %></strong></td>
+              <td><span class="badge badge-info"><%= tip.category %></span></td>
+              <td><%= tip.content.substring(0, 80) %><%= tip.content.length > 80 ? '...' : '' %></td>
+              <td class="actions">
+                <button class="btn-icon danger delete-action" 
+                        data-url="/admin/tips/<%= tip.id %>"
+                        data-session="<%= session %>"
+                        title="Delete">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="text-center text-muted" style="padding: 40px;">
+                No tips yet. Add your first tip using the form.
+              </td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('tipForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  
+  const formData = {
+    title: document.getElementById('title').value,
+    content: document.getElementById('content').value,
+    category: document.getElementById('category').value
+  };
+  
+  try {
+    const response = await fetch('/admin/tips?session=<%= session %>', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+      location.reload();
+    } else {
+      alert('Error: ' + (data.error || 'Failed to add tip'));
+    }
+  } catch (error) {
+    alert('Error adding tip');
+  }
+});
+</script>
+
+<%- include('partials/footer') %>

@@ -1,0 +1,188 @@
+<%- include('partials/header', { title, active: 'home' }) %>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="container">
+    <h1>🛒 Save Money on Groceries</h1>
+    <p>Your daily source for the best grocery deals across Newfoundland & Labrador. Join thousands of savvy shoppers saving money every week!</p>
+    <a href="/subscribe" class="btn btn-primary btn-lg">
+      <i class="fas fa-envelope"></i> Get Daily Deals
+    </a>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="number"><%= dealStats.active || 0 %></span>
+        <span class="label">Active Deals</span>
+      </div>
+      <div class="hero-stat">
+        <span class="number"><%= stores.total || 0 %></span>
+        <span class="label">Stores Tracked</span>
+      </div>
+      <div class="hero-stat">
+        <span class="number"><%= Math.round(dealStats.avg_discount || 0) %>%</span>
+        <span class="label">Avg. Savings</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Featured Deals -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>🔥 Today's Top Deals</h2>
+      <p>Hand-picked deals with the biggest savings across NL</p>
+    </div>
+    
+    <% if (featuredDeals && featuredDeals.length > 0) { %>
+    <div class="deals-grid">
+      <% featuredDeals.forEach(deal => { %>
+      <div class="deal-card <%= deal.is_featured ? 'featured' : '' %>">
+        <div class="deal-card-header">
+          <span class="deal-category">
+            <% 
+              const emoji = {
+                produce: '🥬', meat: '🥩', dairy: '🥛', bakery: '🍞',
+                frozen: '🧊', pantry: '🥫', beverages: '🥤', snacks: '🍿',
+                household: '🧹', personal_care: '🧴', other: '📦'
+              };
+            %>
+            <%= emoji[deal.category] || '📦' %> <%= deal.category %>
+          </span>
+          <% if (deal.discount_percent) { %>
+          <span class="deal-badge">Save <%= Math.round(deal.discount_percent) %>%</span>
+          <% } %>
+        </div>
+        <div class="deal-card-body">
+          <h3 class="deal-name"><%= deal.product_name %></h3>
+          <p class="deal-store">
+            <i class="fas fa-store"></i>
+            <%= deal.store_name %> - <%= deal.city %>
+          </p>
+          <div class="deal-prices">
+            <span class="price-sale">$<%= parseFloat(deal.sale_price).toFixed(2) %></span>
+            <% if (deal.regular_price) { %>
+            <span class="price-regular">$<%= parseFloat(deal.regular_price).toFixed(2) %></span>
+            <% } %>
+          </div>
+          <% if (deal.loyalty_points > 0) { %>
+          <span class="deal-badge points">+<%= deal.loyalty_points %> bonus pts</span>
+          <% } %>
+          <p class="deal-meta">
+            <i class="far fa-calendar"></i>
+            Valid until <%= deal.end_date %>
+          </p>
+          <% if (deal.description) { %>
+          <p class="deal-description"><%= deal.description %></p>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <div class="text-center mt-4">
+      <a href="/deals" class="btn btn-outline">
+        View All Deals <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-tags"></i>
+      <h3>No deals available right now</h3>
+      <p>Check back soon for new deals!</p>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Top Savings -->
+<% if (topSavings && topSavings.length > 0) { %>
+<section class="section" style="background: var(--bg-tertiary);">
+  <div class="container">
+    <div class="section-header">
+      <h2>💰 Biggest Savings This Week</h2>
+      <p>Products with the highest percentage discounts</p>
+    </div>
+    
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Store</th>
+            <th>Regular</th>
+            <th>Sale</th>
+            <th>Savings</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% topSavings.forEach(deal => { %>
+          <tr>
+            <td><strong><%= deal.product_name %></strong></td>
+            <td><%= deal.store_name %>, <%= deal.city %></td>
+            <td class="text-muted">$<%= parseFloat(deal.regular_price).toFixed(2) %></td>
+            <td class="text-success"><strong>$<%= parseFloat(deal.sale_price).toFixed(2) %></strong></td>
+            <td><span class="badge badge-success"><%= Math.round(deal.discount_percent) %>% off</span></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- Tip of the Day -->
+<% if (tip) { %>
+<section class="section">
+  <div class="container">
+    <div class="tip-box">
+      <h3>💡 Tip of the Day: <%= tip.title %></h3>
+      <p><%= tip.content %></p>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<!-- Regions -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2>📍 Shop by Region</h2>
+      <p>Find deals near you across Newfoundland & Labrador</p>
+    </div>
+    
+    <div class="stats-grid">
+      <a href="/deals?region=Avalon" class="stat-card" style="text-decoration: none;">
+        <div class="stat-number"><%= stores.avalon || 0 %></div>
+        <div class="stat-label">Avalon Stores</div>
+      </a>
+      <a href="/deals?region=Central" class="stat-card" style="text-decoration: none;">
+        <div class="stat-number"><%= stores.central || 0 %></div>
+        <div class="stat-label">Central Stores</div>
+      </a>
+      <a href="/deals?region=Western" class="stat-card" style="text-decoration: none;">
+        <div class="stat-number"><%= stores.western || 0 %></div>
+        <div class="stat-label">Western Stores</div>
+      </a>
+      <a href="/deals?region=Labrador" class="stat-card" style="text-decoration: none;">
+        <div class="stat-number"><%= stores.labrador || 0 %></div>
+        <div class="stat-label">Labrador Stores</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Subscribe CTA -->
+<section class="subscribe-section">
+  <div class="container">
+    <h2>📬 Never Miss a Deal</h2>
+    <p>Get the best grocery deals delivered to your inbox every day. It's free!</p>
+    <form action="/subscribe" method="POST" class="subscribe-form">
+      <input type="email" name="email" placeholder="Enter your email" required>
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-paper-plane"></i> Subscribe Free
+      </button>
+    </form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

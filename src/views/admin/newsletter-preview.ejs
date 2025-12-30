@@ -1,0 +1,77 @@
+<%- include('partials/header', { title, session, active: 'newsletters' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-eye"></i> Preview: <%= newsletter.subject %></h1>
+  <a href="/admin/newsletters?session=<%= session %>" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div style="display: grid; grid-template-columns: 300px 1fr; gap: 20px;">
+  <!-- Info Sidebar -->
+  <div>
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2>Details</h2>
+      </div>
+      <div class="admin-card-body">
+        <p><strong>Status:</strong> 
+          <% if (newsletter.status === 'sent') { %>
+          <span class="badge badge-success">Sent</span>
+          <% } else if (newsletter.status === 'scheduled') { %>
+          <span class="badge badge-warning">Scheduled</span>
+          <% } else { %>
+          <span class="badge badge-info">Draft</span>
+          <% } %>
+        </p>
+        <p><strong>Subject:</strong><br><%= newsletter.subject %></p>
+        <% if (newsletter.preview_text) { %>
+        <p><strong>Preview:</strong><br><%= newsletter.preview_text %></p>
+        <% } %>
+        <p><strong>Created:</strong><br><%= new Date(newsletter.created_at).toLocaleString() %></p>
+        <% if (newsletter.sent_at) { %>
+        <p><strong>Sent:</strong><br><%= new Date(newsletter.sent_at).toLocaleString() %></p>
+        <% } %>
+        <hr>
+        <p><strong>Recipients:</strong> <%= newsletter.recipients_count || 0 %></p>
+        <p><strong>Opens:</strong> <%= newsletter.open_count || 0 %></p>
+        <p><strong>Clicks:</strong> <%= newsletter.click_count || 0 %></p>
+        <% if (newsletter.recipients_count > 0) { %>
+        <p><strong>Open Rate:</strong> <%= Math.round((newsletter.open_count / newsletter.recipients_count) * 100) %>%</p>
+        <% } %>
+      </div>
+    </div>
+    
+    <% if (newsletter.deals && newsletter.deals.length > 0) { %>
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2>Included Deals (<%= newsletter.deals.length %>)</h2>
+      </div>
+      <div class="admin-card-body">
+        <ul style="list-style: none; padding: 0; margin: 0;">
+          <% newsletter.deals.forEach(deal => { %>
+          <li style="padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+            <strong><%= deal.product_name %></strong>
+            <br><small class="text-muted"><%= deal.store_name %></small>
+          </li>
+          <% }) %>
+        </ul>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  
+  <!-- Preview -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2>Email Preview</h2>
+    </div>
+    <div class="admin-card-body" style="padding: 0;">
+      <div class="newsletter-preview">
+        <iframe srcdoc="<%- newsletter.content_html.replace(/"/g, '&quot;') %>"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

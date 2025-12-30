@@ -1,0 +1,96 @@
+<%- include('partials/header', { title, session, active: 'newsletters' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-plus"></i> Create Newsletter</h1>
+  <a href="/admin/newsletters?session=<%= session %>" class="btn btn-secondary">
+    <i class="fas fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+  <!-- Form -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2>Newsletter Content</h2>
+    </div>
+    <div class="admin-card-body">
+      <form action="/admin/newsletters?session=<%= session %>" method="POST" id="newsletterForm">
+        <div class="form-group">
+          <label class="form-label" for="subject">Subject Line *</label>
+          <input type="text" id="subject" name="subject" class="form-control" 
+                 required placeholder="e.g., 🔥 Today's Top Grocery Deals - Save up to 50%!">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="preview_text">Preview Text</label>
+          <input type="text" id="preview_text" name="preview_text" class="form-control" 
+                 placeholder="Text shown in email preview...">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="custom_intro">Custom Introduction</label>
+          <textarea id="custom_intro" name="custom_intro" class="form-control" rows="3" 
+                    placeholder="Good morning! Here are today's best grocery deals..."></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Select Tip</label>
+          <select name="tip_id" class="form-control">
+            <option value="">Random tip</option>
+            <% tips.forEach(tip => { %>
+            <option value="<%= tip.id %>"><%= tip.title %></option>
+            <% }) %>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Select Deals to Include</label>
+          <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 5px; padding: 15px;">
+            <% deals.forEach(deal => { %>
+            <label style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-color);">
+              <input type="checkbox" name="deal_ids" value="<%= deal.id %>" <%= deal.is_featured ? 'checked' : '' %>>
+              <span>
+                <strong><%= deal.product_name %></strong>
+                <br><small class="text-muted"><%= deal.store_name %> - $<%= deal.sale_price %>
+                <% if (deal.discount_percent) { %>(Save <%= Math.round(deal.discount_percent) %>%)<% } %>
+                </small>
+              </span>
+            </label>
+            <% }) %>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <button type="button" id="generatePreview" class="btn btn-secondary" data-session="<%= session %>">
+            <i class="fas fa-eye"></i> Generate Preview
+          </button>
+        </div>
+        
+        <textarea name="content_html" id="content_html" style="display: none;"></textarea>
+        
+        <div class="form-group">
+          <button type="submit" name="status" value="draft" class="btn btn-secondary btn-lg">
+            <i class="fas fa-save"></i> Save as Draft
+          </button>
+          <button type="submit" name="status" value="sent" class="btn btn-primary btn-lg">
+            <i class="fas fa-paper-plane"></i> Send Now
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+  <!-- Preview -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2>Preview</h2>
+    </div>
+    <div class="admin-card-body" style="padding: 0;">
+      <div class="newsletter-preview">
+        <iframe id="previewFrame" srcdoc="<p style='padding: 40px; text-align: center; color: #666;'>Click 'Generate Preview' to see newsletter</p>"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
