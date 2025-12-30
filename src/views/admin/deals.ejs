@@ -1,0 +1,115 @@
+<%- include('partials/header', { title, session, active: 'deals' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-tags"></i> Manage Deals</h1>
+  <div class="admin-header-actions">
+    <a href="/admin/deals/new?session=<%= session %>" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Add Deal
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="admin-card">
+  <div class="admin-card-body">
+    <form class="filters" method="GET" action="/admin/deals" style="margin: 0;">
+      <input type="hidden" name="session" value="<%= session %>">
+      <div class="filter-group">
+        <label class="filter-label">Region:</label>
+        <select name="region" class="form-control" style="width: auto;">
+          <option value="">All Regions</option>
+          <% regions.forEach(r => { %>
+          <option value="<%= r.region %>" <%= activeFilters.region === r.region ? 'selected' : '' %>><%= r.region %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Category:</label>
+        <select name="category" class="form-control" style="width: auto;">
+          <option value="">All Categories</option>
+          <% categories.forEach(c => { %>
+          <option value="<%= c.category %>" <%= activeFilters.category === c.category ? 'selected' : '' %>><%= c.category %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="/admin/deals?session=<%= session %>" class="btn btn-secondary btn-sm">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Deals Table -->
+<div class="admin-card">
+  <div class="admin-card-body" style="padding: 0;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;"></th>
+          <th>Product</th>
+          <th>Store</th>
+          <th>Region</th>
+          <th>Regular</th>
+          <th>Sale</th>
+          <th>Discount</th>
+          <th>Valid Until</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (deals && deals.length > 0) { %>
+          <% deals.forEach(deal => { %>
+          <tr>
+            <td>
+              <button class="toggle-featured <%= deal.is_featured ? 'active' : '' %>" 
+                      data-deal-id="<%= deal.id %>" 
+                      data-session="<%= session %>"
+                      title="Toggle Featured">
+                <i class="<%= deal.is_featured ? 'fas' : 'far' %> fa-star"></i>
+              </button>
+            </td>
+            <td>
+              <strong><%= deal.product_name %></strong>
+              <br><small class="text-muted"><%= deal.category %></small>
+            </td>
+            <td><%= deal.store_name %></td>
+            <td><span class="badge badge-info"><%= deal.region %></span></td>
+            <td>
+              <% if (deal.regular_price) { %>
+              $<%= parseFloat(deal.regular_price).toFixed(2) %>
+              <% } else { %>
+              <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td class="text-success"><strong>$<%= parseFloat(deal.sale_price).toFixed(2) %></strong></td>
+            <td>
+              <% if (deal.discount_percent) { %>
+              <span class="badge badge-danger"><%= Math.round(deal.discount_percent) %>%</span>
+              <% } %>
+            </td>
+            <td><%= deal.end_date %></td>
+            <td class="actions">
+              <a href="/admin/deals/<%= deal.id %>/edit?session=<%= session %>" class="btn-icon" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              <button class="btn-icon danger delete-action" 
+                      data-url="/admin/deals/<%= deal.id %>"
+                      data-session="<%= session %>"
+                      title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="9" class="text-center text-muted" style="padding: 40px;">
+              No deals found. <a href="/admin/deals/new?session=<%= session %>">Add your first deal</a>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

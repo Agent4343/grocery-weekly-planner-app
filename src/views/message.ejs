@@ -1,0 +1,22 @@
+<%- include('partials/header', { title }) %>
+
+<div class="message-page">
+  <div class="message-box">
+    <div class="message-icon <%= type %>">
+      <% if (type === 'success') { %>
+        <i class="fas fa-check-circle"></i>
+      <% } else if (type === 'error') { %>
+        <i class="fas fa-times-circle"></i>
+      <% } else { %>
+        <i class="fas fa-info-circle"></i>
+      <% } %>
+    </div>
+    <h1><%= title %></h1>
+    <p><%= message %></p>
+    <a href="/" class="btn btn-primary mt-3">
+      <i class="fas fa-home"></i> Back to Home
+    </a>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

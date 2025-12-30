@@ -1,0 +1,152 @@
+<%- include('partials/header', { title, active: 'deals' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <h1>🏷️ Today's Grocery Deals</h1>
+    <p>Browse all current deals from stores across Newfoundland & Labrador</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <!-- Filters -->
+    <form class="filters" method="GET" action="/deals">
+      <div class="filter-group">
+        <label class="filter-label" for="region">Region:</label>
+        <select name="region" id="region" class="form-control" style="width: auto; min-width: 150px;">
+          <option value="">All Regions</option>
+          <% regions.forEach(r => { %>
+          <option value="<%= r.region %>" <%= activeFilters.region === r.region ? 'selected' : '' %>><%= r.region %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label class="filter-label" for="category">Category:</label>
+        <select name="category" id="category" class="form-control" style="width: auto; min-width: 150px;">
+          <option value="">All Categories</option>
+          <% categories.forEach(c => { %>
+          <option value="<%= c.category %>" <%= activeFilters.category === c.category ? 'selected' : '' %>><%= c.category %> (<%= c.count %>)</option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label class="filter-label" for="chain">Store:</label>
+        <select name="chain" id="chain" class="form-control" style="width: auto; min-width: 150px;">
+          <option value="">All Stores</option>
+          <% chains.forEach(c => { %>
+          <option value="<%= c.chain %>" <%= activeFilters.chain === c.chain ? 'selected' : '' %>><%= c.chain %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fas fa-filter"></i> Filter
+      </button>
+      
+      <% if (activeFilters.region || activeFilters.category || activeFilters.chain) { %>
+      <a href="/deals" class="btn btn-secondary btn-sm">
+        <i class="fas fa-times"></i> Clear
+      </a>
+      <% } %>
+    </form>
+    
+    <!-- Results Count -->
+    <p class="text-muted mb-3">
+      Showing <strong><%= deals.length %></strong> deals
+      <% if (activeFilters.region) { %> in <strong><%= activeFilters.region %></strong><% } %>
+      <% if (activeFilters.category) { %> • Category: <strong><%= activeFilters.category %></strong><% } %>
+      <% if (activeFilters.chain) { %> • Store: <strong><%= activeFilters.chain %></strong><% } %>
+    </p>
+    
+    <!-- Deals Grid -->
+    <% if (deals && deals.length > 0) { %>
+    <div class="deals-grid">
+      <% deals.forEach(deal => { %>
+      <div class="deal-card <%= deal.is_featured ? 'featured' : '' %>">
+        <div class="deal-card-header">
+          <span class="deal-category">
+            <% 
+              const emoji = {
+                produce: '🥬', meat: '🥩', dairy: '🥛', bakery: '🍞',
+                frozen: '🧊', pantry: '🥫', beverages: '🥤', snacks: '🍿',
+                household: '🧹', personal_care: '🧴', other: '📦'
+              };
+            %>
+            <%= emoji[deal.category] || '📦' %> <%= deal.category %>
+          </span>
+          <div>
+            <% if (deal.is_featured) { %>
+            <span class="deal-badge featured"><i class="fas fa-star"></i> Featured</span>
+            <% } %>
+            <% if (deal.discount_percent) { %>
+            <span class="deal-badge">-<%= Math.round(deal.discount_percent) %>%</span>
+            <% } %>
+          </div>
+        </div>
+        <div class="deal-card-body">
+          <h3 class="deal-name"><%= deal.product_name %></h3>
+          <p class="deal-store">
+            <i class="fas fa-store"></i>
+            <%= deal.store_name %>
+          </p>
+          <p class="deal-store">
+            <i class="fas fa-map-marker-alt"></i>
+            <%= deal.city %>, <%= deal.region %>
+          </p>
+          <div class="deal-prices">
+            <span class="price-sale">$<%= parseFloat(deal.sale_price).toFixed(2) %></span>
+            <% if (deal.regular_price) { %>
+            <span class="price-regular">$<%= parseFloat(deal.regular_price).toFixed(2) %></span>
+            <% } %>
+            <% if (deal.unit && deal.unit !== 'each') { %>
+            <span class="text-muted">/<%= deal.unit %></span>
+            <% } %>
+          </div>
+          <% if (deal.loyalty_points > 0) { %>
+          <span class="deal-badge points">
+            <i class="fas fa-gift"></i> +<%= deal.loyalty_points %> <%= deal.loyalty_program || 'bonus' %> pts
+          </span>
+          <% } %>
+          <p class="deal-meta mt-2">
+            <i class="far fa-calendar-alt"></i>
+            <%= deal.start_date %> - <%= deal.end_date %>
+          </p>
+          <% if (deal.description) { %>
+          <p class="deal-description"><%= deal.description %></p>
+          <% } %>
+          <% if (deal.source) { %>
+          <p class="deal-meta"><i class="fas fa-tag"></i> <%= deal.source %></p>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-search"></i>
+      <h3>No deals found</h3>
+      <p>Try adjusting your filters or check back later for new deals.</p>
+      <a href="/deals" class="btn btn-primary mt-2">View All Deals</a>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<!-- Subscribe CTA -->
+<section class="subscribe-section">
+  <div class="container">
+    <h2>📬 Get Deals in Your Inbox</h2>
+    <p>Subscribe to receive daily deals tailored to your region!</p>
+    <form action="/subscribe" method="POST" class="subscribe-form">
+      <input type="email" name="email" placeholder="Enter your email" required>
+      <input type="hidden" name="region" value="<%= activeFilters.region || 'All' %>">
+      <button type="submit" class="btn btn-primary">
+        <i class="fas fa-paper-plane"></i> Subscribe
+      </button>
+    </form>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

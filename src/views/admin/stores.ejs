@@ -1,0 +1,97 @@
+<%- include('partials/header', { title, session, active: 'stores' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-store"></i> Manage Stores</h1>
+  <div class="admin-header-actions">
+    <a href="/admin/stores/new?session=<%= session %>" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Add Store
+    </a>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="admin-card">
+  <div class="admin-card-body">
+    <form class="filters" method="GET" action="/admin/stores" style="margin: 0;">
+      <input type="hidden" name="session" value="<%= session %>">
+      <div class="filter-group">
+        <label class="filter-label">Region:</label>
+        <select name="region" class="form-control" style="width: auto;">
+          <option value="">All Regions</option>
+          <% regions.forEach(r => { %>
+          <option value="<%= r.region %>" <%= activeFilters.region === r.region ? 'selected' : '' %>><%= r.region %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Chain:</label>
+        <select name="chain" class="form-control" style="width: auto;">
+          <option value="">All Chains</option>
+          <% chains.forEach(c => { %>
+          <option value="<%= c.chain %>" <%= activeFilters.chain === c.chain ? 'selected' : '' %>><%= c.chain %></option>
+          <% }) %>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="/admin/stores?session=<%= session %>" class="btn btn-secondary btn-sm">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Stores Table -->
+<div class="admin-card">
+  <div class="admin-card-body" style="padding: 0;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Store Name</th>
+          <th>Chain</th>
+          <th>City</th>
+          <th>Region</th>
+          <th>Loyalty Program</th>
+          <th>Type</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (stores && stores.length > 0) { %>
+          <% stores.forEach(store => { %>
+          <tr>
+            <td><strong><%= store.name %></strong></td>
+            <td><%= store.chain %></td>
+            <td><%= store.city %></td>
+            <td><span class="badge badge-info"><%= store.region %></span></td>
+            <td>
+              <% if (store.loyalty_program) { %>
+              <span class="badge badge-success"><%= store.loyalty_program %></span>
+              <% } else { %>
+              <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td><%= store.store_type %></td>
+            <td class="actions">
+              <a href="/admin/stores/<%= store.id %>/edit?session=<%= session %>" class="btn-icon" title="Edit">
+                <i class="fas fa-edit"></i>
+              </a>
+              <button class="btn-icon danger delete-action" 
+                      data-url="/admin/stores/<%= store.id %>"
+                      data-session="<%= session %>"
+                      title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="7" class="text-center text-muted" style="padding: 40px;">
+              No stores found. <a href="/admin/stores/new?session=<%= session %>">Add your first store</a>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

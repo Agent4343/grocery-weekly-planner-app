@@ -1,0 +1,106 @@
+<%- include('partials/header', { title, active: 'stores' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <h1>🏪 Store Directory</h1>
+    <p>Find grocery stores across Newfoundland & Labrador</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <!-- Filters -->
+    <form class="filters" method="GET" action="/stores">
+      <div class="filter-group">
+        <label class="filter-label" for="region">Region:</label>
+        <select name="region" id="region" class="form-control" style="width: auto; min-width: 150px;">
+          <option value="">All Regions</option>
+          <% regions.forEach(r => { %>
+          <option value="<%= r.region %>" <%= activeFilters.region === r.region ? 'selected' : '' %>><%= r.region %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label class="filter-label" for="chain">Chain:</label>
+        <select name="chain" id="chain" class="form-control" style="width: auto; min-width: 150px;">
+          <option value="">All Chains</option>
+          <% chains.forEach(c => { %>
+          <option value="<%= c.chain %>" <%= activeFilters.chain === c.chain ? 'selected' : '' %>><%= c.chain %></option>
+          <% }) %>
+        </select>
+      </div>
+      
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="fas fa-filter"></i> Filter
+      </button>
+      
+      <% if (activeFilters.region || activeFilters.chain) { %>
+      <a href="/stores" class="btn btn-secondary btn-sm">
+        <i class="fas fa-times"></i> Clear
+      </a>
+      <% } %>
+    </form>
+    
+    <!-- Results -->
+    <p class="text-muted mb-3">
+      Showing <strong><%= stores.length %></strong> stores
+      <% if (activeFilters.region) { %> in <strong><%= activeFilters.region %></strong><% } %>
+      <% if (activeFilters.chain) { %> • Chain: <strong><%= activeFilters.chain %></strong><% } %>
+    </p>
+    
+    <% if (stores && stores.length > 0) { %>
+    <div class="stores-grid">
+      <% stores.forEach(store => { %>
+      <div class="store-card">
+        <p class="store-chain"><%= store.chain %></p>
+        <h3 class="store-name"><%= store.name %></h3>
+        <% if (store.address) { %>
+        <p class="store-address">
+          <i class="fas fa-map-marker-alt"></i> <%= store.address %>
+        </p>
+        <% } %>
+        <p class="store-address">
+          <i class="fas fa-city"></i> <%= store.city %>, NL
+          <% if (store.postal_code) { %><%= store.postal_code %><% } %>
+        </p>
+        <% if (store.phone) { %>
+        <p class="store-address">
+          <i class="fas fa-phone"></i> <a href="tel:<%= store.phone %>"><%= store.phone %></a>
+        </p>
+        <% } %>
+        
+        <div class="d-flex gap-1" style="flex-wrap: wrap; margin-top: 10px;">
+          <span class="store-region"><%= store.region %></span>
+          <% if (store.loyalty_program) { %>
+          <span class="store-loyalty">
+            <i class="fas fa-gift"></i> <%= store.loyalty_program %>
+          </span>
+          <% } %>
+        </div>
+        
+        <div class="mt-2">
+          <a href="/deals?chain=<%= encodeURIComponent(store.chain) %>" class="btn btn-sm btn-secondary">
+            <i class="fas fa-tag"></i> View Deals
+          </a>
+          <% if (store.website) { %>
+          <a href="<%= store.website %>" target="_blank" rel="noopener" class="btn btn-sm btn-outline">
+            <i class="fas fa-external-link-alt"></i> Website
+          </a>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="empty-state">
+      <i class="fas fa-store-slash"></i>
+      <h3>No stores found</h3>
+      <p>Try adjusting your filters.</p>
+      <a href="/stores" class="btn btn-primary mt-2">View All Stores</a>
+    </div>
+    <% } %>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

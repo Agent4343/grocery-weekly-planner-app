@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Daily grocery deals from across Newfoundland & Labrador. Save money on your weekly shop with deals from Dominion, Sobeys, Colemans, Walmart, Costco and more.">
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">
+        <span class="logo-icon">🛒</span>
+        <span class="logo-text">NL Grocery Deals</span>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation">
+        <i class="fas fa-bars"></i>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/" class="<%= typeof active !== 'undefined' && active === 'home' ? 'active' : '' %>">Home</a></li>
+        <li><a href="/deals" class="<%= typeof active !== 'undefined' && active === 'deals' ? 'active' : '' %>">Deals</a></li>
+        <li><a href="/stores" class="<%= typeof active !== 'undefined' && active === 'stores' ? 'active' : '' %>">Stores</a></li>
+        <li><a href="/tips" class="<%= typeof active !== 'undefined' && active === 'tips' ? 'active' : '' %>">Tips</a></li>
+        <li><a href="/about" class="<%= typeof active !== 'undefined' && active === 'about' ? 'active' : '' %>">About</a></li>
+        <li><a href="/subscribe" class="btn btn-primary btn-sm">Subscribe</a></li>
+      </ul>
+    </div>
+  </nav>
+  <main>

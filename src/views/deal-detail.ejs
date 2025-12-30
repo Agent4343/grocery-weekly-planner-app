@@ -1,0 +1,126 @@
+<%- include('partials/header', { title, active: 'deals' }) %>
+
+<div class="page-header">
+  <div class="container">
+    <nav style="margin-bottom: 15px;">
+      <a href="/deals" style="color: rgba(255,255,255,0.8);">
+        <i class="fas fa-arrow-left"></i> Back to Deals
+      </a>
+    </nav>
+    <h1><%= deal.product_name %></h1>
+    <p><%= deal.store_name %> • <%= deal.city %>, <%= deal.region %></p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container" style="max-width: 800px;">
+    <div class="card">
+      <div class="card-body p-4">
+        <div class="d-flex justify-between align-center" style="flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+          <div>
+            <span class="deal-category" style="font-size: 14px;">
+              <% 
+                const emoji = {
+                  produce: '🥬', meat: '🥩', dairy: '🥛', bakery: '🍞',
+                  frozen: '🧊', pantry: '🥫', beverages: '🥤', snacks: '🍿',
+                  household: '🧹', personal_care: '🧴', other: '📦'
+                };
+              %>
+              <%= emoji[deal.category] || '📦' %> <%= deal.category %>
+            </span>
+          </div>
+          <div>
+            <% if (deal.is_featured) { %>
+            <span class="badge badge-success"><i class="fas fa-star"></i> Featured Deal</span>
+            <% } %>
+            <% if (deal.discount_percent) { %>
+            <span class="badge badge-danger">Save <%= Math.round(deal.discount_percent) %>%</span>
+            <% } %>
+          </div>
+        </div>
+        
+        <div class="deal-prices" style="margin-bottom: 20px;">
+          <span class="price-sale" style="font-size: 3rem;">$<%= parseFloat(deal.sale_price).toFixed(2) %></span>
+          <% if (deal.regular_price) { %>
+          <span class="price-regular" style="font-size: 1.5rem;">$<%= parseFloat(deal.regular_price).toFixed(2) %></span>
+          <% } %>
+          <% if (deal.unit && deal.unit !== 'each') { %>
+          <span class="text-muted">/<%= deal.unit %></span>
+          <% } %>
+        </div>
+        
+        <% if (deal.regular_price && deal.sale_price) { %>
+        <div class="alert alert-success">
+          <i class="fas fa-piggy-bank"></i>
+          <strong>You Save: $<%= (deal.regular_price - deal.sale_price).toFixed(2) %></strong>
+          (<%= Math.round(deal.discount_percent) %>% off regular price)
+        </div>
+        <% } %>
+        
+        <% if (deal.loyalty_points > 0) { %>
+        <div class="alert alert-info">
+          <i class="fas fa-gift"></i>
+          <strong>Bonus Points!</strong> Earn <%= deal.loyalty_points %> <%= deal.loyalty_program || 'loyalty' %> points with this purchase
+          <% if (deal.loyalty_points_value > 0) { %>
+          (worth ~$<%= deal.loyalty_points_value.toFixed(2) %>)
+          <% } %>
+        </div>
+        <% } %>
+        
+        <% if (deal.description) { %>
+        <p style="font-size: 1.1rem; margin-bottom: 20px;"><%= deal.description %></p>
+        <% } %>
+        
+        <hr style="margin: 25px 0;">
+        
+        <h3>Deal Details</h3>
+        <table style="width: 100%; box-shadow: none;">
+          <tr>
+            <td style="padding: 10px 0;"><strong>Store:</strong></td>
+            <td><%= deal.store_name %></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0;"><strong>Location:</strong></td>
+            <td><%= deal.city %>, <%= deal.region %></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0;"><strong>Valid From:</strong></td>
+            <td><%= deal.start_date %></td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 0;"><strong>Valid Until:</strong></td>
+            <td><%= deal.end_date %></td>
+          </tr>
+          <% if (deal.source) { %>
+          <tr>
+            <td style="padding: 10px 0;"><strong>Source:</strong></td>
+            <td><%= deal.source %></td>
+          </tr>
+          <% } %>
+          <% if (deal.loyalty_program) { %>
+          <tr>
+            <td style="padding: 10px 0;"><strong>Loyalty Program:</strong></td>
+            <td><%= deal.loyalty_program %></td>
+          </tr>
+          <% } %>
+        </table>
+        
+        <div class="text-center mt-4">
+          <a href="/deals?chain=<%= encodeURIComponent(deal.chain) %>" class="btn btn-primary">
+            <i class="fas fa-tag"></i> More <%= deal.chain %> Deals
+          </a>
+          <a href="/deals?region=<%= encodeURIComponent(deal.region) %>" class="btn btn-secondary">
+            <i class="fas fa-map-marker-alt"></i> More <%= deal.region %> Deals
+          </a>
+        </div>
+        
+        <p class="text-muted text-center mt-4" style="font-size: 13px;">
+          <i class="fas fa-info-circle"></i>
+          Prices may vary. Please confirm with your local store before shopping.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%- include('partials/footer') %>

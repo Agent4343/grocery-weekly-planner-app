@@ -1,0 +1,188 @@
+<%- include('partials/header', { title, session, active: 'dashboard' }) %>
+
+<div class="admin-header">
+  <h1>📊 Dashboard</h1>
+  <div class="admin-header-actions">
+    <a href="/admin/deals/new?session=<%= session %>" class="btn btn-primary">
+      <i class="fas fa-plus"></i> Add Deal
+    </a>
+    <a href="/admin/newsletters/new?session=<%= session %>" class="btn btn-secondary">
+      <i class="fas fa-envelope"></i> Create Newsletter
+    </a>
+  </div>
+</div>
+
+<!-- Stats Overview -->
+<div class="admin-stats">
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon blue">
+      <i class="fas fa-tags"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= dealStats.active || 0 %></h3>
+      <p>Active Deals</p>
+    </div>
+  </div>
+  
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon green">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= subscriberStats.active || 0 %></h3>
+      <p>Subscribers</p>
+    </div>
+  </div>
+  
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon orange">
+      <i class="fas fa-store"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= storeStats.total || 0 %></h3>
+      <p>Stores</p>
+    </div>
+  </div>
+  
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon purple">
+      <i class="fas fa-paper-plane"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= newsletterStats.sent || 0 %></h3>
+      <p>Newsletters Sent</p>
+    </div>
+  </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+  <!-- Recent Deals -->
+  <div class="admin-card">
+    <div class="admin-card-header">
+      <h2><i class="fas fa-tags"></i> Recent Deals</h2>
+      <a href="/admin/deals?session=<%= session %>" class="btn btn-sm btn-secondary">View All</a>
+    </div>
+    <div class="admin-card-body" style="padding: 0;">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Store</th>
+            <th>Price</th>
+            <th>Discount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (recentDeals && recentDeals.length > 0) { %>
+            <% recentDeals.forEach(deal => { %>
+            <tr>
+              <td>
+                <strong><%= deal.product_name %></strong>
+                <% if (deal.is_featured) { %>
+                <span class="badge badge-success" style="font-size: 10px;">Featured</span>
+                <% } %>
+              </td>
+              <td><%= deal.store_name %></td>
+              <td class="text-success"><strong>$<%= parseFloat(deal.sale_price).toFixed(2) %></strong></td>
+              <td>
+                <% if (deal.discount_percent) { %>
+                <span class="badge badge-danger"><%= Math.round(deal.discount_percent) %>% off</span>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+          <% } else { %>
+            <tr>
+              <td colspan="4" class="text-center text-muted">No deals yet</td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Sidebar -->
+  <div>
+    <!-- Quick Stats -->
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2><i class="fas fa-chart-pie"></i> Deal Stats</h2>
+      </div>
+      <div class="admin-card-body">
+        <div class="quick-stats" style="flex-wrap: wrap;">
+          <div class="quick-stat">
+            <div class="value"><%= dealStats.featured || 0 %></div>
+            <div class="label">Featured</div>
+          </div>
+          <div class="quick-stat">
+            <div class="value"><%= Math.round(dealStats.avg_discount || 0) %>%</div>
+            <div class="label">Avg Discount</div>
+          </div>
+          <div class="quick-stat">
+            <div class="value"><%= dealStats.max_discount || 0 %>%</div>
+            <div class="label">Max Discount</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Recent Subscribers -->
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2><i class="fas fa-user-plus"></i> New Subscribers</h2>
+      </div>
+      <div class="admin-card-body">
+        <% if (recentSubscribers && recentSubscribers.length > 0) { %>
+          <ul class="activity-list">
+            <% recentSubscribers.slice(0, 5).forEach(sub => { %>
+            <li class="activity-item">
+              <div class="activity-icon">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="activity-content">
+                <strong><%= sub.email %></strong>
+                <small><%= sub.region %> • <%= new Date(sub.subscribed_at).toLocaleDateString() %></small>
+              </div>
+            </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="text-muted text-center">No recent subscribers</p>
+        <% } %>
+      </div>
+    </div>
+    
+    <!-- Subscriber Breakdown -->
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h2><i class="fas fa-map-marker-alt"></i> By Region</h2>
+      </div>
+      <div class="admin-card-body">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span>Avalon</span>
+            <strong><%= subscriberStats.avalon || 0 %></strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Central</span>
+            <strong><%= subscriberStats.central || 0 %></strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Western</span>
+            <strong><%= subscriberStats.western || 0 %></strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>Labrador</span>
+            <strong><%= subscriberStats.labrador || 0 %></strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span>All Regions</span>
+            <strong><%= subscriberStats.all_regions || 0 %></strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

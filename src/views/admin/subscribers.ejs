@@ -1,0 +1,142 @@
+<%- include('partials/header', { title, session, active: 'subscribers' }) %>
+
+<div class="admin-header">
+  <h1><i class="fas fa-users"></i> Manage Subscribers</h1>
+</div>
+
+<!-- Stats -->
+<div class="admin-stats">
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon green">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= stats.active || 0 %></h3>
+      <p>Active Subscribers</p>
+    </div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon blue">
+      <i class="fas fa-check-circle"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= stats.verified || 0 %></h3>
+      <p>Verified</p>
+    </div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon purple">
+      <i class="fas fa-crown"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= stats.premium || 0 %></h3>
+      <p>Premium</p>
+    </div>
+  </div>
+  <div class="admin-stat-card">
+    <div class="admin-stat-icon orange">
+      <i class="fas fa-user-plus"></i>
+    </div>
+    <div class="admin-stat-content">
+      <h3><%= stats.total || 0 %></h3>
+      <p>Total All Time</p>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="admin-card">
+  <div class="admin-card-body">
+    <form class="filters" method="GET" action="/admin/subscribers" style="margin: 0;">
+      <input type="hidden" name="session" value="<%= session %>">
+      <div class="filter-group">
+        <label class="filter-label">Region:</label>
+        <select name="region" class="form-control" style="width: auto;">
+          <option value="">All Regions</option>
+          <option value="Avalon" <%= activeFilters.region === 'Avalon' ? 'selected' : '' %>>Avalon</option>
+          <option value="Central" <%= activeFilters.region === 'Central' ? 'selected' : '' %>>Central</option>
+          <option value="Western" <%= activeFilters.region === 'Western' ? 'selected' : '' %>>Western</option>
+          <option value="Labrador" <%= activeFilters.region === 'Labrador' ? 'selected' : '' %>>Labrador</option>
+          <option value="All" <%= activeFilters.region === 'All' ? 'selected' : '' %>>All Regions</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Status:</label>
+        <select name="status" class="form-control" style="width: auto;">
+          <option value="">All</option>
+          <option value="verified" <%= activeFilters.status === 'verified' ? 'selected' : '' %>>Verified Only</option>
+          <option value="premium" <%= activeFilters.status === 'premium' ? 'selected' : '' %>>Premium Only</option>
+          <option value="inactive" <%= activeFilters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <a href="/admin/subscribers?session=<%= session %>" class="btn btn-secondary btn-sm">Clear</a>
+    </form>
+  </div>
+</div>
+
+<!-- Subscribers Table -->
+<div class="admin-card">
+  <div class="admin-card-body" style="padding: 0;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Email</th>
+          <th>Name</th>
+          <th>Region</th>
+          <th>Status</th>
+          <th>Subscribed</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (subscribers && subscribers.length > 0) { %>
+          <% subscribers.forEach(sub => { %>
+          <tr>
+            <td><strong><%= sub.email %></strong></td>
+            <td>
+              <% if (sub.first_name || sub.last_name) { %>
+              <%= sub.first_name %> <%= sub.last_name %>
+              <% } else { %>
+              <span class="text-muted">—</span>
+              <% } %>
+            </td>
+            <td><span class="badge badge-info"><%= sub.region || 'All' %></span></td>
+            <td>
+              <% if (sub.is_active) { %>
+                <% if (sub.is_verified) { %>
+                <span class="badge badge-success">Verified</span>
+                <% } else { %>
+                <span class="badge badge-warning">Pending</span>
+                <% } %>
+                <% if (sub.is_premium) { %>
+                <span class="badge badge-primary">Premium</span>
+                <% } %>
+              <% } else { %>
+              <span class="badge badge-danger">Inactive</span>
+              <% } %>
+            </td>
+            <td><%= new Date(sub.subscribed_at).toLocaleDateString() %></td>
+            <td class="actions">
+              <button class="btn-icon danger delete-action" 
+                      data-url="/admin/subscribers/<%= sub.id %>"
+                      data-session="<%= session %>"
+                      title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="6" class="text-center text-muted" style="padding: 40px;">
+              No subscribers found.
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

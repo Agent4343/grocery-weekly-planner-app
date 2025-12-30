@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+  <nav class="admin-nav">
+    <div class="admin-nav-brand">
+      <a href="/admin/dashboard?session=<%= session %>">
+        <span class="logo-icon">🛒</span>
+        <span>NL Grocery Deals</span>
+      </a>
+    </div>
+    <div class="admin-nav-links">
+      <a href="/admin/dashboard?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'dashboard' ? 'active' : '' %>">
+        <i class="fas fa-chart-line"></i> Dashboard
+      </a>
+      <a href="/admin/deals?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'deals' ? 'active' : '' %>">
+        <i class="fas fa-tags"></i> Deals
+      </a>
+      <a href="/admin/stores?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'stores' ? 'active' : '' %>">
+        <i class="fas fa-store"></i> Stores
+      </a>
+      <a href="/admin/subscribers?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'subscribers' ? 'active' : '' %>">
+        <i class="fas fa-users"></i> Subscribers
+      </a>
+      <a href="/admin/newsletters?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'newsletters' ? 'active' : '' %>">
+        <i class="fas fa-envelope"></i> Newsletters
+      </a>
+      <a href="/admin/tips?session=<%= session %>" class="<%= typeof active !== 'undefined' && active === 'tips' ? 'active' : '' %>">
+        <i class="fas fa-lightbulb"></i> Tips
+      </a>
+    </div>
+    <div class="admin-nav-actions">
+      <a href="/" target="_blank" class="btn btn-secondary btn-sm">
+        <i class="fas fa-external-link-alt"></i> View Site
+      </a>
+      <a href="/admin/logout?session=<%= session %>" class="btn btn-outline btn-sm">
+        <i class="fas fa-sign-out-alt"></i> Logout
+      </a>
+    </div>
+  </nav>
+  <main class="admin-main">
