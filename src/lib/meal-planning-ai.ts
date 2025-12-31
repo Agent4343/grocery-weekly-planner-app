@@ -409,6 +409,69 @@ export class MealPlanningAI {
     return true;
   }
 
+  // Track ingredients used across meals for reuse optimization
+  private trackIngredients(recipe: Recipe, usedIngredients: Map<string, number>): void {
+    recipe.ingredients.forEach(ing => {
+      const key = ing.name.toLowerCase();
+      usedIngredients.set(key, (usedIngredients.get(key) || 0) + 1);
+    });
+  }
+
+  // Plan a single meal and track its ingredients
+  private planMeal(
+    mealType: 'breakfast' | 'lunch' | 'dinner',
+    eligibleRecipes: Recipe[],
+    dayOfWeek: number,
+    dayName: string,
+    servingsNeeded: number,
+    preferences: UserPreferences,
+    usedIngredients: Map<string, number>,
+    dealMeals: BestDealMeal[],
+    maximizeIngredientReuse: boolean
+  ): PlannedMeal | null {
+    const recipe = this.selectRecipeForMeal(
+      eligibleRecipes,
+      mealType,
+      preferences,
+      usedIngredients,
+      dealMeals,
+      maximizeIngredientReuse
+    );
+
+    if (!recipe) return null;
+
+    const meal = this.createPlannedMeal(
+      recipe,
+      dayOfWeek,
+      dayName,
+      mealType,
+      servingsNeeded,
+      preferences
+    );
+
+    this.trackIngredients(recipe, usedIngredients);
+    return meal;
+  }
+
+  // Build a daily plan from meals
+  private buildDailyPlan(
+    dayOfWeek: number,
+    dayName: string,
+    date: Date,
+    meals: PlannedMeal[]
+  ): DailyPlan {
+    return {
+      dayOfWeek,
+      dayName,
+      date: date.toISOString().split('T')[0],
+      meals,
+      totalCalories: 0, // Nutrition info not available in simplified recipe format
+      totalCost: meals.reduce((sum, m) => sum + m.estimatedCost, 0),
+      totalTime: meals.reduce((sum, m) => sum + m.estimatedTime, 0),
+      totalSavings: meals.reduce((sum, m) => sum + m.dealSavings, 0)
+    };
+  }
+
   // Generate a full weekly meal plan
   generateWeeklyPlan(
     preferences: UserPreferences,
@@ -427,134 +490,32 @@ export class MealPlanningAI {
     } = options;
 
     const servingsNeeded = Math.ceil(calculateServingsNeeded(preferences.household));
-    const days: DailyPlan[] = [];
-    const usedIngredients = new Map<string, number>(); // Track ingredient usage for reuse
+    const usedIngredients = new Map<string, number>();
     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    // Get recipes that match preferences
-    const eligibleRecipes = recipes.filter(r =>
-      this.recipeMatchesPreferences(r, preferences)
-    );
-
-    // Get best deal meals if preferring deals
+    const eligibleRecipes = recipes.filter(r => this.recipeMatchesPreferences(r, preferences));
+    const breakfastRecipes = eligibleRecipes.filter(r => r.category === 'Breakfast' || r.category === 'Dessert');
     const dealMeals = preferDeals ? this.getBestDealMeals(preferences) : [];
+
+    const days: DailyPlan[] = [];
 
     for (let i = 0; i < planDays; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
       const dayOfWeek = date.getDay();
+      const dayName = dayNames[dayOfWeek];
 
-      const dailyMeals: PlannedMeal[] = [];
+      // Plan all three meals for the day
+      const meals: PlannedMeal[] = [
+        this.planMeal('dinner', eligibleRecipes, dayOfWeek, dayName, servingsNeeded, preferences, usedIngredients, dealMeals, maximizeIngredientReuse),
+        this.planMeal('lunch', eligibleRecipes, dayOfWeek, dayName, servingsNeeded, preferences, usedIngredients, dealMeals, maximizeIngredientReuse),
+        this.planMeal('breakfast', breakfastRecipes, dayOfWeek, dayName, servingsNeeded, preferences, usedIngredients, dealMeals, maximizeIngredientReuse)
+      ].filter((meal): meal is PlannedMeal => meal !== null);
 
-      // Plan dinner (main focus)
-      const dinnerRecipe = this.selectRecipeForMeal(
-        eligibleRecipes,
-        'dinner',
-        preferences,
-        usedIngredients,
-        dealMeals,
-        maximizeIngredientReuse
-      );
-
-      if (dinnerRecipe) {
-        const dinnerMeal = this.createPlannedMeal(
-          dinnerRecipe,
-          dayOfWeek,
-          dayNames[dayOfWeek],
-          'dinner',
-          servingsNeeded,
-          preferences
-        );
-        dailyMeals.push(dinnerMeal);
-
-        // Track used ingredients
-        dinnerRecipe.ingredients.forEach(ing => {
-          const key = ing.name.toLowerCase();
-          usedIngredients.set(
-            key,
-            (usedIngredients.get(key) || 0) + 1
-          );
-        });
-      }
-
-      // Plan lunch (simpler meals)
-      const lunchRecipe = this.selectRecipeForMeal(
-        eligibleRecipes,
-        'lunch',
-        preferences,
-        usedIngredients,
-        dealMeals,
-        maximizeIngredientReuse
-      );
-
-      if (lunchRecipe) {
-        const lunchMeal = this.createPlannedMeal(
-          lunchRecipe,
-          dayOfWeek,
-          dayNames[dayOfWeek],
-          'lunch',
-          servingsNeeded,
-          preferences
-        );
-        dailyMeals.push(lunchMeal);
-
-        lunchRecipe.ingredients.forEach(ing => {
-          const key = ing.name.toLowerCase();
-          usedIngredients.set(
-            key,
-            (usedIngredients.get(key) || 0) + 1
-          );
-        });
-      }
-
-      // Plan breakfast
-      const breakfastRecipe = this.selectRecipeForMeal(
-        eligibleRecipes.filter(r => r.category === 'Breakfast' || r.category === 'Dessert'),
-        'breakfast',
-        preferences,
-        usedIngredients,
-        dealMeals,
-        maximizeIngredientReuse
-      );
-
-      if (breakfastRecipe) {
-        const breakfastMeal = this.createPlannedMeal(
-          breakfastRecipe,
-          dayOfWeek,
-          dayNames[dayOfWeek],
-          'breakfast',
-          servingsNeeded,
-          preferences
-        );
-        dailyMeals.push(breakfastMeal);
-
-        breakfastRecipe.ingredients.forEach(ing => {
-          const key = ing.name.toLowerCase();
-          usedIngredients.set(
-            key,
-            (usedIngredients.get(key) || 0) + 1
-          );
-        });
-      }
-
-      const dailyPlan: DailyPlan = {
-        dayOfWeek,
-        dayName: dayNames[dayOfWeek],
-        date: date.toISOString().split('T')[0],
-        meals: dailyMeals,
-        totalCalories: 0, // Nutrition info not available in simplified recipe format
-        totalCost: dailyMeals.reduce((sum, m) => sum + m.estimatedCost, 0),
-        totalTime: dailyMeals.reduce((sum, m) => sum + m.estimatedTime, 0),
-        totalSavings: dailyMeals.reduce((sum, m) => sum + m.dealSavings, 0)
-      };
-
-      days.push(dailyPlan);
+      days.push(this.buildDailyPlan(dayOfWeek, dayName, date, meals));
     }
 
-    // Generate shopping list
     const shoppingList = this.generateShoppingList(days, preferences);
-
-    // Calculate summary
     const summary = this.calculateWeeklySummary(days, usedIngredients, shoppingList);
 
     return {
