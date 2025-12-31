@@ -8,6 +8,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -26,7 +33,8 @@ import {
   Users,
   ChevronDown,
   ChevronUp,
-  Printer
+  Printer,
+  ListPlus
 } from 'lucide-react';
 
 import {
@@ -37,6 +45,25 @@ import {
   getRecipeTotalCost
 } from '@/lib/recipes';
 
+const groceryCategories = [
+  'Produce',
+  'Meat',
+  'Seafood',
+  'Dairy',
+  'Pantry',
+  'Frozen',
+  'Bakery',
+  'Spices'
+];
+
+type CustomItemForm = {
+  name: string;
+  amount: string;
+  unit: string;
+  category: string;
+  estimatedPrice: string;
+};
+
 export function SimpleMealPlanner() {
   const [activeTab, setActiveTab] = useState('recipes');
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,6 +73,14 @@ export function SimpleMealPlanner() {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(['Produce', 'Meat', 'Dairy']));
   const [servingsMultiplier, setServingsMultiplier] = useState(1);
+  const [customItems, setCustomItems] = useState<GroceryItem[]>([]);
+  const [newItem, setNewItem] = useState<CustomItemForm>({
+    name: '',
+    amount: '1',
+    unit: 'unit',
+    category: 'Pantry',
+    estimatedPrice: ''
+  });
 
   // Filter recipes
   const filteredRecipes = useMemo(() => {
@@ -64,14 +99,35 @@ export function SimpleMealPlanner() {
 
   // Generate grocery list from selected recipes
   const groceryList = useMemo(() => {
-    const list = generateGroceryList(selectedRecipes);
-    // Apply servings multiplier
-    return list.map(item => ({
+    const recipeItems = generateGroceryList(selectedRecipes).map(item => ({
       ...item,
       amount: item.amount * servingsMultiplier,
       estimatedPrice: item.estimatedPrice * servingsMultiplier
     }));
-  }, [selectedRecipes, servingsMultiplier]);
+
+    const mergedMap = new Map<string, GroceryItem>();
+
+    const addItem = (item: GroceryItem) => {
+      const key = `${item.name}-${item.unit}`.toLowerCase();
+      const existing = mergedMap.get(key);
+
+      if (existing) {
+        mergedMap.set(key, {
+          ...existing,
+          amount: existing.amount + item.amount,
+          estimatedPrice: existing.estimatedPrice + (item.estimatedPrice || 0),
+          fromRecipes: Array.from(new Set([...existing.fromRecipes, ...item.fromRecipes]))
+        });
+      } else {
+        mergedMap.set(key, item);
+      }
+    };
+
+    recipeItems.forEach(addItem);
+    customItems.forEach(addItem);
+
+    return Array.from(mergedMap.values()).sort((a, b) => a.category.localeCompare(b.category));
+  }, [selectedRecipes, servingsMultiplier, customItems]);
 
   // Group grocery list by category
   const groceryByCategory = useMemo(() => {
@@ -111,6 +167,48 @@ export function SimpleMealPlanner() {
   const clearAllRecipes = () => {
     setSelectedRecipes([]);
     setCheckedItems(new Set());
+  };
+
+  const handleAddCustomItem = () => {
+    if (!newItem.name.trim() || !newItem.unit.trim()) return;
+
+    const amountValue = parseFloat(newItem.amount);
+    if (Number.isNaN(amountValue) || amountValue <= 0) return;
+
+    const item: GroceryItem = {
+      name: newItem.name.trim(),
+      amount: amountValue,
+      unit: newItem.unit.trim(),
+      category: newItem.category,
+      estimatedPrice: newItem.estimatedPrice ? parseFloat(newItem.estimatedPrice) || 0 : 0,
+      fromRecipes: ['Custom Item']
+    };
+
+    setCustomItems(prev => {
+      const key = `${item.name}-${item.unit}`.toLowerCase();
+      const existingIndex = prev.findIndex(i => `${i.name}-${i.unit}`.toLowerCase() === key);
+
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        const existing = updated[existingIndex];
+        updated[existingIndex] = {
+          ...existing,
+          amount: existing.amount + item.amount,
+          estimatedPrice: existing.estimatedPrice + item.estimatedPrice,
+          fromRecipes: Array.from(new Set([...existing.fromRecipes, 'Custom Item']))
+        };
+        return updated;
+      }
+
+      return [...prev, item];
+    });
+
+    setNewItem({ name: '', amount: '1', unit: 'unit', category: newItem.category, estimatedPrice: '' });
+  };
+
+  const removeCustomItem = (item: GroceryItem) => {
+    const key = `${item.name}-${item.unit}`.toLowerCase();
+    setCustomItems(prev => prev.filter(i => `${i.name}-${i.unit}`.toLowerCase() !== key));
   };
 
   const toggleItem = (itemKey: string) => {
@@ -448,123 +546,220 @@ export function SimpleMealPlanner() {
 
           {/* Grocery List Tab */}
           <TabsContent value="grocery">
-            {groceryList.length === 0 ? (
-              <Card>
-                <CardContent className="py-12 text-center">
-                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-lg font-medium mb-2">Your grocery list is empty</h3>
-                  <p className="text-gray-500 mb-4">
-                    Add some meals to generate your shopping list
-                  </p>
-                  <Button onClick={() => setActiveTab('recipes')}>
-                    Browse Recipes
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {/* Summary Header */}
-                <Card className="mb-6">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                      <div className="flex gap-6">
-                        <div>
-                          <p className="text-sm text-gray-500">Total Items</p>
-                          <p className="text-2xl font-bold">{totalItems}</p>
+            <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+              <div className="space-y-4">
+                {groceryList.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-medium mb-2">Your grocery list is empty</h3>
+                      <p className="text-gray-500 mb-4">
+                        Add meals or custom items to build your shopping list
+                      </p>
+                      <Button onClick={() => setActiveTab('recipes')}>
+                        Browse Recipes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {/* Summary Header */}
+                    <Card className="mb-2">
+                      <CardContent className="p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                          <div className="flex gap-6">
+                            <div>
+                              <p className="text-sm text-gray-500">Total Items</p>
+                              <p className="text-2xl font-bold">{totalItems}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Checked Off</p>
+                              <p className="text-2xl font-bold text-green-600">{checkedCount}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm text-gray-500">Estimated Total</p>
+                              <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button variant="outline" onClick={() => window.print()}>
+                              <Printer className="h-4 w-4 mr-2" />
+                              Print List
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                const text = Object.entries(groceryByCategory)
+                                  .map(([cat, items]) =>
+                                    `${cat}:\n${items.map(i => `  - ${formatAmount(i.amount, i.unit)} ${i.name}`).join('\n')}`
+                                  )
+                                  .join('\n\n');
+                                navigator.clipboard.writeText(text);
+                              }}
+                            >
+                              Copy to Clipboard
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Checked Off</p>
-                          <p className="text-2xl font-bold text-green-600">{checkedCount}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Estimated Total</p>
-                          <p className="text-2xl font-bold">${totalCost.toFixed(2)}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => window.print()}>
-                          <Printer className="h-4 w-4 mr-2" />
-                          Print List
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            const text = Object.entries(groceryByCategory)
-                              .map(([cat, items]) =>
-                                `${cat}:\n${items.map(i => `  - ${formatAmount(i.amount, i.unit)} ${i.name}`).join('\n')}`
-                              )
-                              .join('\n\n');
-                            navigator.clipboard.writeText(text);
-                          }}
-                        >
-                          Copy to Clipboard
-                        </Button>
-                      </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Grocery List by Category */}
+                    <div className="space-y-4">
+                      {Object.entries(groceryByCategory).map(([category, items]) => (
+                        <Card key={category}>
+                          <CardHeader
+                            className="cursor-pointer py-3"
+                            onClick={() => toggleCategory(category)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                {category}
+                                <Badge variant="secondary">{items.length}</Badge>
+                              </CardTitle>
+                              {expandedCategories.has(category) ? (
+                                <ChevronUp className="h-5 w-5 text-gray-400" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-gray-400" />
+                              )}
+                            </div>
+                          </CardHeader>
+                          {expandedCategories.has(category) && (
+                            <CardContent className="pt-0">
+                              <div className="space-y-2">
+                                {items.map(item => {
+                                  const itemKey = `${item.name}-${item.unit}`;
+                                  const isChecked = checkedItems.has(itemKey);
+                                  return (
+                                    <div
+                                      key={itemKey}
+                                      className={`flex items-center justify-between gap-3 p-3 rounded-lg border ${
+                                        isChecked ? 'bg-green-50 border-green-200' : ''
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <Checkbox
+                                          checked={isChecked}
+                                          onCheckedChange={() => toggleItem(itemKey)}
+                                        />
+                                        <div>
+                                          <p className="font-medium">
+                                            {formatAmount(item.amount, item.unit)} {item.name}
+                                          </p>
+                                          <p className="text-xs text-gray-500">
+                                            For: {item.fromRecipes.join(', ')}
+                                          </p>
+                                        </div>
+                                      </div>
+                                      <Badge variant="outline">
+                                        ${item.estimatedPrice.toFixed(2)}
+                                      </Badge>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </CardContent>
+                          )}
+                        </Card>
+                      ))}
                     </div>
+                  </>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <ListPlus className="h-5 w-5 text-green-600" />
+                      Quick add item
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Item name"
+                        value={newItem.name}
+                        onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+                      />
+                      <Input
+                        placeholder="Amount"
+                        type="number"
+                        min="0"
+                        value={newItem.amount}
+                        onChange={(e) => setNewItem({ ...newItem, amount: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        placeholder="Unit (e.g. lbs, pack)"
+                        value={newItem.unit}
+                        onChange={(e) => setNewItem({ ...newItem, unit: e.target.value })}
+                      />
+                      <Select
+                        value={newItem.category}
+                        onValueChange={(value) => setNewItem({ ...newItem, category: value })}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groceryCategories.map(category => (
+                            <SelectItem key={category} value={category}>{category}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Estimated price (optional)"
+                        type="number"
+                        min="0"
+                        value={newItem.estimatedPrice}
+                        onChange={(e) => setNewItem({ ...newItem, estimatedPrice: e.target.value })}
+                      />
+                      <Button className="w-40" onClick={handleAddCustomItem}>
+                        Add item
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Custom items stay on your list even without selecting recipes.
+                    </p>
                   </CardContent>
                 </Card>
 
-                {/* Grocery List by Category */}
-                <div className="space-y-4">
-                  {Object.entries(groceryByCategory).map(([category, items]) => (
-                    <Card key={category}>
-                      <CardHeader
-                        className="cursor-pointer py-3"
-                        onClick={() => toggleCategory(category)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            {category}
-                            <Badge variant="secondary">{items.length}</Badge>
-                          </CardTitle>
-                          {expandedCategories.has(category) ? (
-                            <ChevronUp className="h-5 w-5 text-gray-400" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-gray-400" />
-                          )}
-                        </div>
-                      </CardHeader>
-                      {expandedCategories.has(category) && (
-                        <CardContent className="pt-0">
-                          <div className="space-y-2">
-                            {items.map((item, idx) => {
-                              const itemKey = `${category}-${idx}`;
-                              const isChecked = checkedItems.has(itemKey);
-                              return (
-                                <div
-                                  key={itemKey}
-                                  className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                                    isChecked ? 'bg-green-50 border-green-200' : 'bg-white hover:bg-gray-50'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <Checkbox
-                                      checked={isChecked}
-                                      onCheckedChange={() => toggleItem(itemKey)}
-                                    />
-                                    <div>
-                                      <p className={`font-medium ${isChecked ? 'line-through text-gray-400' : ''}`}>
-                                        {formatAmount(item.amount, item.unit)} {item.name}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        For: {item.fromRecipes.join(', ')}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <Badge variant="outline">
-                                    ${item.estimatedPrice.toFixed(2)}
-                                  </Badge>
-                                </div>
-                              );
-                            })}
+                {customItems.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg">Custom items</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {customItems.map(item => (
+                        <div
+                          key={`${item.name}-${item.unit}`}
+                          className="flex items-center justify-between gap-3 rounded-md border p-3"
+                        >
+                          <div>
+                            <p className="font-medium">{item.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {formatAmount(item.amount, item.unit)} • {item.category}
+                            </p>
                           </div>
-                        </CardContent>
-                      )}
-                    </Card>
-                  ))}
-                </div>
-              </>
-            )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500"
+                            onClick={() => removeCustomItem(item)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
